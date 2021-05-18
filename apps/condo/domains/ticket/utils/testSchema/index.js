@@ -14,7 +14,6 @@ const { TicketStatus: TicketStatusGQL } = require('@condo/domains/ticket/gql')
 const { TicketChange: TicketChangeGQL } = require('@condo/domains/ticket/gql')
 const { TicketSource: TicketSourceGQL } = require('@condo/domains/ticket/gql')
 const { TicketClassifier: TicketClassifierGQL } = require('@condo/domains/ticket/gql')
-const { TicketFile: TicketFileGQL } = require('@condo/domains/ticket/gql')
 /* AUTOGENERATE MARKER <IMPORT> */
 
 const TICKET_OPEN_STATUS_ID ='6ef3abc4-022f-481b-90fb-8430345ebfc2'
@@ -23,7 +22,6 @@ const TICKET_OTHER_SOURCE_ID = '7da1e3be-06ba-4c9e-bba6-f97f278ac6e4'
 
 const Ticket = generateGQLTestUtils(TicketGQL)
 const TicketStatus = generateGQLTestUtils(TicketStatusGQL)
-const TicketFile = generateGQLTestUtils(TicketFileGQL)
 const TicketChange = generateGQLTestUtils(TicketChangeGQL)
 const TicketSource = generateGQLTestUtils(TicketSourceGQL)
 const TicketClassifier = generateGQLTestUtils(TicketClassifierGQL)
