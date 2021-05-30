@@ -5,7 +5,6 @@
 
 const { User } = require('./User')
 const { RegisterNewUserService } = require('./RegisterNewUserService')
-const { AuthenticateUserWithFirebaseIdTokenService } = require('./AuthenticateUserWithFirebaseIdTokenService')
 const { AuthenticateUserWithPhoneAndPasswordService } = require('./AuthenticateUserWithPhoneAndPasswordService')
 const { ForgotPasswordAction, ForgotPasswordService } = require('./ForgotPassword')
 /* AUTOGENERATE MARKER <REQUIRE> */
@@ -13,7 +12,6 @@ const { ForgotPasswordAction, ForgotPasswordService } = require('./ForgotPasswor
 module.exports = {
     User,
     RegisterNewUserService,
-    AuthenticateUserWithFirebaseIdTokenService,
     AuthenticateUserWithPhoneAndPasswordService,
     ForgotPasswordAction, 
     ForgotPasswordService,

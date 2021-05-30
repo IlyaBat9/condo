@@ -10,7 +10,6 @@ import { REGISTER_NEW_USER_MUTATION } from '@condo/domains/user/gql'
 import { MIN_PASSWORD_LENGTH } from '@condo/domains/user/constants/common'
 import { formatPhone } from '@condo/domains/common/utils/helpers'
 import MaskedInput from 'antd-mask-input'
-import { AUTH as firebaseAuth, initRecaptcha, resetRecaptcha, IS_FIREBASE_CONFIG_VALID } from '@condo/domains/common/utils/firebase.front.utils'
 import { getClientSideSenderInfo } from '@condo/domains/common/utils/userid.utils'
 import { useAuth } from '@core/next/auth'
 import { useMutation } from '@core/next/apollo'
@@ -33,40 +32,17 @@ const AuthContext = createContext({
     signout: () => null,
     phone: '',
 })
-declare global {
-    interface Window {
-        recaptchaVerifier: unknown
-    }
-}
 
 const Auth = ({ children }): React.ReactElement => {
     const [user, setUser] = useState(null)
     const intl = useIntl()
-    const ClientSideErrorMsg = intl.formatMessage({ id: 'ClientSideError' })
     const recaptchaVerifier = useRef(null)
     const [, setCaptcha] = useState('')
     const [confirmationResult, setConfirmationResult] = useState(null)
     const [phone, setPhone] = useState('')
 
-    useEffect(() => {
-        if (!IS_FIREBASE_CONFIG_VALID) {
-            throw new Error(ClientSideErrorMsg)
-        }
-        recaptchaVerifier.current = initRecaptcha(setCaptcha, setCaptcha)
-        if (typeof window !== 'undefined') {
-            window.recaptchaVerifier = recaptchaVerifier.current
-        }
-        return () => {
-            recaptchaVerifier.current.clear()
-            setCaptcha(null)
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [])
-
     async function sendCode (phoneNumber) {
         setPhone(phoneNumber)
-        const confirmation = await firebaseAuth().signInWithPhoneNumber(phoneNumber, recaptchaVerifier.current)
-        setConfirmationResult(confirmation)
     }
 
     async function verifyCode (verificationCode) {
@@ -76,7 +52,7 @@ const Auth = ({ children }): React.ReactElement => {
     }
 
     async function signout () {
-        return await firebaseAuth().signOut()
+        return
     }
 
     return (
@@ -131,35 +107,18 @@ const InputPhoneForm = ({ onFinish }): React.ReactElement<IInputPhoneFormProps> 
     const UserAgreementFileName = intl.formatMessage({ id: 'pages.auth.register.info.UserAgreementFileName' })
     const ExamplePhoneMsg = intl.formatMessage({ id: 'example.Phone' })
     const FieldIsRequiredMsg = intl.formatMessage({ id: 'FieldIsRequired' })
-    
-    const FirebaseEmptyPhoneError = intl.formatMessage({ id: 'auth.firebase.EmptyPhoneNumber' })
-    const FirebaseValidatePhoneError = intl.formatMessage({ id: 'auth.firebase.InvalidPhoneNumber' })
-    const FirebaseTooManyRequests = intl.formatMessage({ id: 'auth.firebase.TooManyRequests' })
-
     const { phone, sendCode } = useContext(AuthContext)
-
-    const [firebaseError, setfirebaseError] = useState(null)
+    const [smsSendError, setSmsSendError] = useState(null)
 
     async function handleSendCode () {
-        setfirebaseError(null)
+        setSmsSendError(null)
         const { phone } = await form.validateFields(['phone'])
         try {
             await sendCode(phone)
             onFinish()
         } catch (error) {
-            if (error.code) {
-                const msg = {
-                    'auth/invalid-phone-number': FirebaseValidatePhoneError,
-                    'auth/too-many-requests': FirebaseTooManyRequests,
-                    'auth/missing-phone-number': FirebaseEmptyPhoneError,
-                }[error.code] || 'send sms unknown error code'
-                console.error('Firebase error: ', error)
-                setfirebaseError(msg)
-            } else {
-                console.error('send sms error ', error)
-            }            
+            setSmsSendError(error)
             form.validateFields()
-            resetRecaptcha()
         }
     }
     const RegisterMsg = intl.formatMessage({ id: 'Register' })
@@ -189,15 +148,15 @@ const InputPhoneForm = ({ onFinish }): React.ReactElement<IInputPhoneFormProps> 
                         },
                         () => ({
                             validator () {
-                                if (!firebaseError) {
+                                if (!smsSendError) {
                                     return Promise.resolve()
                                 }
-                                return Promise.reject(firebaseError)
+                                return Promise.reject(smsSendError)
                             },
                         }),
                     ]}              
                 >
-                    <MaskedInput mask='+1 (111) 111-11-11' value={phone} placeholder={ExamplePhoneMsg} onChange={() => setfirebaseError(null)} style={{ ...INPUT_STYLE }} />
+                    <MaskedInput mask='+1 (111) 111-11-11' value={phone} placeholder={ExamplePhoneMsg} onChange={() => setSmsSendError(null)} style={{ ...INPUT_STYLE }} />
                 </Form.Item>
 
                 <Typography.Paragraph style={{ textAlign: 'left', fontSize: '12px', marginTop: '40px', lineHeight: '20px' }}>
@@ -236,9 +195,6 @@ const ValidatePhoneForm = ({ onFinish, onReset }): React.ReactElement<IValidateP
     const ChangePhoneNumberLabel = intl.formatMessage({ id: 'pages.auth.register.ChangePhoneNumber' })
     const FieldIsRequiredMsg = intl.formatMessage({ id: 'FieldIsRequired' })
     const SmsCodeTitle = intl.formatMessage({ id: 'pages.auth.register.field.SmsCode' })
-    const FirebaseValidateCodeError = intl.formatMessage({ id: 'auth.firebase.WrongValidationCode' })
-    const FirebaseEmptyCodeError = intl.formatMessage({ id: 'auth.firebase.EmptyValidationCode' })
-
     const [isPhoneVisible, setisPhoneVisible] = useState(false)
     const PhoneToggleLabel = isPhoneVisible ? intl.formatMessage({ id: 'Hide' }) : intl.formatMessage({ id: 'Show' })
     const { verifyCode, signout, phone } = useContext(AuthContext)
@@ -252,10 +208,10 @@ const ValidatePhoneForm = ({ onFinish, onReset }): React.ReactElement<IValidateP
         }
     }, [isPhoneVisible, phone, setShowPhone])
 
-    const [firebaseError, setfirebaseError] = useState(null)
+    const [phoneValidateError, setPhoneValidateError] = useState(null)
 
     async function handleVerifyCode () {
-        setfirebaseError(null)
+        setPhoneValidateError(null)
         const { smscode } = await form.validateFields(['smscode'])
         if (smscode.toString().length < SMS_CODE_LENGTH) {
             return
@@ -264,17 +220,8 @@ const ValidatePhoneForm = ({ onFinish, onReset }): React.ReactElement<IValidateP
             await verifyCode(smscode)
             onFinish()
         } catch (error) {
-            if (error.code) {
-                const msg = {
-                    'auth/invalid-verification-code': FirebaseValidateCodeError,
-                    'auth/missing-verification-code': FirebaseEmptyCodeError,
-                }[error.code] || `validate code unknown error code: ${error.code}`
-                setfirebaseError(msg)
-            } else {
-                console.error('send sms error ', error)
-            }            
+            setPhoneValidateError(error)
             form.validateFields()            
-            resetRecaptcha()
         }
     }
 
@@ -315,10 +262,10 @@ const ValidatePhoneForm = ({ onFinish, onReset }): React.ReactElement<IValidateP
                         },
                         () => ({
                             validator () {
-                                if (!firebaseError) {
+                                if (!phoneValidateError) {
                                     return Promise.resolve()
                                 }
-                                return Promise.reject(firebaseError)
+                                return Promise.reject(phoneValidateError)
                             },
                         }),
                     ]}
@@ -342,7 +289,7 @@ const RegisterForm = ({ onFinish }): React.ReactElement<IRegisterFormProps> => {
     const { user } = useContext(AuthContext)
     const [isLoading, setIsLoading] = useState(false)
     const { signin } = useAuth()
-    const initialValues = { phone: user.phoneNumber, firebaseIdToken: user.token }
+    const initialValues = { phone: user.phoneNumber }
     const intl = useIntl()
     const RegisterMsg = intl.formatMessage({ id: 'Register' })
     const PhoneMsg = intl.formatMessage({ id: 'pages.auth.register.field.Phone' })
@@ -388,8 +335,8 @@ const RegisterForm = ({ onFinish }): React.ReactElement<IRegisterFormProps> => {
         if (values.email) {
             values.email = values.email.toLowerCase().trim()
         }
-        const { name, email, password, firebaseIdToken } = values
-        const data = { name, email, password, firebaseIdToken, ...registerExtraData }
+        const { name, email, password } = values
+        const data = { name, email, password, ...registerExtraData }
         setIsLoading(true)
         return runMutation({
             mutation: register,
@@ -502,7 +449,7 @@ const RegisterForm = ({ onFinish }): React.ReactElement<IRegisterFormProps> => {
                     <Input.Password style={INPUT_STYLE}/>
                 </Form.Item>
                 <Form.Item
-                    name="firebaseIdToken"
+                    name="captcha"
                     noStyle={true}
                 >
                     <Input disabled={true} hidden={true}/>

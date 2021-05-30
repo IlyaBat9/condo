@@ -3,7 +3,7 @@ import { Button } from '@condo/domains/common/components/Button'
 import AuthLayout, { AuthLayoutContext, AuthPage } from '@condo/domains/common/components/containers/BaseLayout/AuthLayout'
 import LoadingOrErrorPage from '@condo/domains/common/components/containers/LoadingOrErrorPage'
 import Router from 'next/router'
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useCallback } from 'react'
 import { colors } from '@condo/domains/common/constants/style'
 import { useIntl } from '@core/next/intl'
 import { FormattedMessage } from 'react-intl'
@@ -11,6 +11,7 @@ import { runMutation } from '@condo/domains/common/utils/mutations.utils'
 import { useMutation } from '@core/next/apollo'
 import { START_PASSWORD_RECOVERY_MUTATION } from '@condo/domains/user/gql'
 import { WRONG_EMAIL_ERROR } from '@condo/domains/user/constants/errors'
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3'
 
 
 const LINK_STYLE = { color: colors.sberPrimary[7] }
@@ -34,12 +35,18 @@ const ResetPage: AuthPage = () => {
     const [isLoading, setIsLoading] = useState(false)
     const [isSuccessMessage, setIsSuccessMessage] = useState(false)
     const [startPasswordRecovery] = useMutation(START_PASSWORD_RECOVERY_MUTATION)
+    const { executeRecaptcha } = useGoogleReCaptcha()
     const ErrorToFormFieldMsgMapping = {
         [WRONG_EMAIL_ERROR]: {
             name: 'email',
             errors: [EmailIsNotRegisteredMsg],
         },
     }
+    const handleReCaptchaVerify = useCallback(async (action) => {
+        const token = await executeRecaptcha(action)
+        return token
+    }, [executeRecaptcha])
+
     if (isLoading) {
         return <LoadingOrErrorPage title={ResetTitle} loading={isLoading} error={null}/>
     }
@@ -57,11 +64,14 @@ const ResetPage: AuthPage = () => {
         )    
     }
 
-    const onFormSubmit = values => {
+
+    const onFormSubmit = async _values => {
+        setIsLoading(true)
+        const captcha = await handleReCaptchaVerify('forgotPassword')
+        const values = { ..._values, captcha }
         if (values.email) {
             values.email = values.email.toLowerCase()
         }
-        setIsLoading(true)
         return runMutation({
             mutation: startPasswordRecovery,
             variables: values,

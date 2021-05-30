@@ -3,7 +3,6 @@ const { REGISTER_NEW_USER_MESSAGE_TYPE } = require('@condo/domains/notification/
 const { RUSSIA_COUNTRY } = require('@condo/domains/common/constants/countries')
 const { COUNTRIES } = require('@condo/domains/common/constants/countries')
 const { sendMessage } = require('@condo/domains/notification/utils/serverSchema')
-const { admin } = require('@condo/domains/common/utils/firebase.back.utils')
 const { MIN_PASSWORD_LENGTH_ERROR, EMAIL_ALREADY_REGISTERED_ERROR } = require('@condo/domains/user/constants/errors')
 const { MIN_PASSWORD_LENGTH } = require('@condo/domains/user/constants/common')
 
@@ -34,7 +33,7 @@ const RegisterNewUserService = new GQLCustomSchema('RegisterNewUserService', {
     types: [
         {
             access: true,
-            type: 'input RegisterNewUserInput { dv: Int!, sender: JSON!, name: String!, email: String!, password: String!, firebaseIdToken: String, phone: String, meta: JSON }',
+            type: 'input RegisterNewUserInput { dv: Int!, sender: JSON!, name: String!, email: String!, password: String!, phone: String, meta: JSON }',
         },
     ],
     mutations: [
@@ -43,23 +42,10 @@ const RegisterNewUserService = new GQLCustomSchema('RegisterNewUserService', {
             schema: 'registerNewUser(data: RegisterNewUserInput!): User',
             resolver: async (parent, args, context) => {
                 const { data } = args
-                const { firebaseIdToken, ...restUserData } = data
                 const userData = {
-                    ...restUserData,
+                    ...data,
                     isPhoneVerified: false,
                 }
-
-                if (firebaseIdToken) {
-                    const { uid, phone_number } = await admin.auth().verifyIdToken(firebaseIdToken)
-
-                    await ensureNotExists(context, 'User', 'Users', 'phone', phone_number)
-                    await ensureNotExists(context, 'User', 'Users', 'importId', uid)
-
-                    userData.phone = phone_number
-                    userData.isPhoneVerified = true
-                    userData.importId = uid
-                }
-
                 // TODO(Dimitreee): use ensureNotExists
                 const { errors: findErrors, data: findData } = await context.executeGraphQL({
                     context: context.createContext({ skipAccessControl: true }),

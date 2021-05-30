@@ -20,7 +20,9 @@ const ANT_LOCALES = {
     en: enUS,
 }
 import { useAntdMediaQuery } from '@condo/domains/common/utils/mediaQuery.utils'
-
+import { GoogleReCaptchaProvider } from 'react-google-recaptcha-v3'
+import getConfig from 'next/config'
+const { publicRuntimeConfig: { googleCaptcha: { SITE_KEY } } } = getConfig()
 export interface AuthPage extends React.FC {
     headerAction: React.ReactElement
     container: React.FC
@@ -69,22 +71,32 @@ const AuthLayout: React.FC<IAuthLayoutProps> = ({ children, headerAction }) => {
     const isMobile = (colSize === 'xs')
     return (
         <ConfigProvider locale={ANT_LOCALES[intl.locale] || ANT_DEFAULT_LOCALE}>
-            <AuthLayoutContext.Provider value={{ isMobile }}>
-                <Global styles={formInputFixCss}></Global>
-                <Layout style={{ background: colors.white, height: '100vh' }}>
-                    <AntPageHeader
-                        style={{ ...HEADER_STYLE, position: 'fixed' }}
-                        title={<Logo onClick={() => Router.push('/')} />}
-                        extra={headerAction}
-                    >
-                    </AntPageHeader>
-                    <PageContent>
-                        {children}
-                    </PageContent>
-                    <PageFooter />
-                    <div id={'recaptcha-container'}/>
-                </Layout>
-            </AuthLayoutContext.Provider>
+            <GoogleReCaptchaProvider
+                reCaptchaKey={SITE_KEY}
+                language={intl.locale}
+                useRecaptchaNet
+                scriptProps={{
+                    async: true, 
+                    defer: true, 
+                    appendTo: 'body',
+                }}>
+                <AuthLayoutContext.Provider value={{ isMobile }}>
+                    <Global styles={formInputFixCss}></Global>
+                    <Layout style={{ background: colors.white, height: '100vh' }}>
+                        <AntPageHeader
+                            style={{ ...HEADER_STYLE, position: 'fixed' }}
+                            title={<Logo onClick={() => Router.push('/')} />}
+                            extra={headerAction}
+                        >
+                        </AntPageHeader>
+                        <PageContent>
+                            {children}
+                        </PageContent>
+                        <PageFooter />
+                        <div id={'recaptcha-container'}/>
+                    </Layout>
+                </AuthLayoutContext.Provider>
+            </GoogleReCaptchaProvider>
         </ConfigProvider>
     )
 }

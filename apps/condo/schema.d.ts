@@ -23,18 +23,10 @@ export type AcceptOrRejectOrganizationInviteInput = {
   isAccepted?: Maybe<Scalars['Boolean']>;
 };
 
-export type AuthenticateUserWithFirebaseIdTokenInput = {
-  firebaseIdToken: Scalars['String'];
-};
-
-export type AuthenticateUserWithFirebaseIdTokenOutput = {
-  __typename?: 'AuthenticateUserWithFirebaseIdTokenOutput';
-  item?: Maybe<User>;
-};
-
 export type AuthenticateUserWithPhoneAndPasswordInput = {
   phone: Scalars['String'];
   password: Scalars['String'];
+  recaptcha?: Maybe<Scalars['String']>;
 };
 
 export type AuthenticateUserWithPhoneAndPasswordOutput = {
@@ -5353,7 +5345,6 @@ export type Mutation = {
   /**  Delete multiple Message items by ID.  */
   deleteMessages?: Maybe<Array<Maybe<Message>>>;
   registerNewUser?: Maybe<User>;
-  authenticateUserWithFirebaseIdToken?: Maybe<AuthenticateUserWithFirebaseIdTokenOutput>;
   authenticateUserWithPhoneAndPassword?: Maybe<AuthenticateUserWithPhoneAndPasswordOutput>;
   startPasswordRecovery?: Maybe<Scalars['String']>;
   changePasswordWithToken?: Maybe<Scalars['String']>;
@@ -6739,11 +6730,6 @@ export type MutationRegisterNewUserArgs = {
 };
 
 
-export type MutationAuthenticateUserWithFirebaseIdTokenArgs = {
-  data: AuthenticateUserWithFirebaseIdTokenInput;
-};
-
-
 export type MutationAuthenticateUserWithPhoneAndPasswordArgs = {
   data: AuthenticateUserWithPhoneAndPasswordInput;
 };
@@ -6751,6 +6737,7 @@ export type MutationAuthenticateUserWithPhoneAndPasswordArgs = {
 
 export type MutationStartPasswordRecoveryArgs = {
   email: Scalars['String'];
+  recaptcha?: Maybe<Scalars['String']>;
 };
 
 
@@ -10149,7 +10136,6 @@ export type RegisterNewUserInput = {
   name: Scalars['String'];
   email: Scalars['String'];
   password: Scalars['String'];
-  firebaseIdToken?: Maybe<Scalars['String']>;
   phone?: Maybe<Scalars['String']>;
   meta?: Maybe<Scalars['JSON']>;
 };

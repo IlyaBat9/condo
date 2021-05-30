@@ -3,12 +3,15 @@ const { GQLCustomSchema } = require('@core/keystone/schema')
 const { normalizePhone } = require('@condo/domains/common/utils/phone')
 const { User } = require('@condo/domains/user/utils/serverSchema')
 const { WRONG_PHONE_ERROR, WRONG_PASSWORD_ERROR } = require('@condo/domains/user/constants/errors')
+const isEmpty = require('lodash/isEmpty')
+const { recaptchaCheck } = require('@condo/domains/common/utils/googleRecaptcha3')
+
 
 const AuthenticateUserWithPhoneAndPasswordService = new GQLCustomSchema('AuthenticateUserWithPhoneAndPasswordService', {
     types: [
         {
             access: true,
-            type: 'input AuthenticateUserWithPhoneAndPasswordInput { phone: String! password: String! }',
+            type: 'input AuthenticateUserWithPhoneAndPasswordInput { phone: String!, password: String!, recaptcha: String }',
         },
         {
             access: true,
@@ -20,7 +23,12 @@ const AuthenticateUserWithPhoneAndPasswordService = new GQLCustomSchema('Authent
             access: true,
             schema: 'authenticateUserWithPhoneAndPassword(data: AuthenticateUserWithPhoneAndPasswordInput!): AuthenticateUserWithPhoneAndPasswordOutput',
             resolver: async (parent, args, context, info, extra = {}) => {
-                const { phone: inputPhone, password } = info.variableValues
+                console.log('authenticateUserWithPhoneAndPassword', args, info.variableValues)
+
+                const { phone: inputPhone, password, recaptcha } = info.variableValues
+                if (!isEmpty(recaptcha)) {
+                    recaptchaCheck(recaptcha)
+                }
                 const phone = normalizePhone(inputPhone)
                 const users = await User.getAll(context, { phone })
                 if (users.length !== 1) {
@@ -30,16 +38,16 @@ const AuthenticateUserWithPhoneAndPasswordService = new GQLCustomSchema('Authent
                 const user = await getById('User', users[0].id)
                 const { keystone } = await getSchemaCtx(AuthenticateUserWithPhoneAndPasswordService)  
                 const { auth: { User: { password: PasswordStrategy } } } = keystone
-                // We can't configure main PasswordStrategy to use phones by default, so we can override identity field here
+                // We can't configure main PasswordStrategy to use phones by default as jest tests will be broken, but we can override identity field here
                 PasswordStrategy.config.identityField = 'phone'
                 const { success, message } = await PasswordStrategy.validate({ phone, password })
                 if (!success) {
                     throw new Error(`${WRONG_PASSWORD_ERROR}] ${message}`)
                 }
-                const token = await context.startAuthedSession({ item: users[0], list: keystone.lists['User'] })
+                const authToken = await context.startAuthedSession({ item: users[0], list: keystone.lists['User'] })
                 const result = {
                     item: user,
-                    token,
+                    token: authToken,
                 }
                 return result
             },
