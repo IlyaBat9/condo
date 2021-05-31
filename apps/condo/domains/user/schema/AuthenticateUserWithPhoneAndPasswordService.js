@@ -4,14 +4,14 @@ const { normalizePhone } = require('@condo/domains/common/utils/phone')
 const { User } = require('@condo/domains/user/utils/serverSchema')
 const { WRONG_PHONE_ERROR, WRONG_PASSWORD_ERROR } = require('@condo/domains/user/constants/errors')
 const isEmpty = require('lodash/isEmpty')
-const { recaptchaCheck } = require('@condo/domains/common/utils/googleRecaptcha3')
+const { captchaCheck } = require('@condo/domains/common/utils/googleRecaptcha3')
 
 
 const AuthenticateUserWithPhoneAndPasswordService = new GQLCustomSchema('AuthenticateUserWithPhoneAndPasswordService', {
     types: [
         {
             access: true,
-            type: 'input AuthenticateUserWithPhoneAndPasswordInput { phone: String!, password: String!, recaptcha: String }',
+            type: 'input AuthenticateUserWithPhoneAndPasswordInput { phone: String!, password: String!, captcha: String }',
         },
         {
             access: true,
@@ -25,9 +25,9 @@ const AuthenticateUserWithPhoneAndPasswordService = new GQLCustomSchema('Authent
             resolver: async (parent, args, context, info, extra = {}) => {
                 console.log('authenticateUserWithPhoneAndPassword', args, info.variableValues)
 
-                const { phone: inputPhone, password, recaptcha } = info.variableValues
-                if (!isEmpty(recaptcha)) {
-                    recaptchaCheck(recaptcha)
+                const { phone: inputPhone, password, captcha } = info.variableValues
+                if (!isEmpty(captcha)) {
+                    captchaCheck(captcha)
                 }
                 const phone = normalizePhone(inputPhone)
                 const users = await User.getAll(context, { phone })

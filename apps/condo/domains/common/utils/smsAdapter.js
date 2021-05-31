@@ -1,4 +1,4 @@
-const { isEmpty, get } = require('lodash')
+const { isEmpty, get, has } = require('lodash')
 const fetch = require('node-fetch')
 const conf = require('@core/config')
 
@@ -34,6 +34,10 @@ class SMSAdapter {
     async send ({ phone, message }) {
         if (!this.adapter.isPhoneSupported(phone)) {
             throw new Error(`Unsupported phone number ${phone}`)
+        }
+        if (has(this.whitelist, phone)) {
+            console.log('whitelist sms send ', phone, this.whitelist[phone])
+            return [true, {}]
         }
         const result = await this.adapter.send({ phone, message })
         return result
@@ -114,6 +118,7 @@ class SmsCRu {
             }
         )
         const json = await result.json()
+        
         console.log('====== SMS =========')
         console.log('json', json)
         console.log('result', result)

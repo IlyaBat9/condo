@@ -93,7 +93,6 @@ const AuthLayout: React.FC<IAuthLayoutProps> = ({ children, headerAction }) => {
                             {children}
                         </PageContent>
                         <PageFooter />
-                        <div id={'recaptcha-container'}/>
                     </Layout>
                 </AuthLayoutContext.Provider>
             </GoogleReCaptchaProvider>

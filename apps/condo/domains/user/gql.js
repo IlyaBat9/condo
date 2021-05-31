@@ -41,8 +41,8 @@ const CHANGE_PASSWORD_WITH_TOKEN_MUTATION = gql`
 `
 
 const SIGNIN_BY_PHONE_AND_PASSWORD_MUTATION = gql`
-    mutation authenticateUserWithPhoneAndPassword ($phone: String!, $password: String!, $recaptcha: String) {
-        obj: authenticateUserWithPhoneAndPassword(data: { phone: $phone, password: $password, recaptcha: $recaptcha }) {
+    mutation authenticateUserWithPhoneAndPassword ($phone: String!, $password: String!, $captcha: String) {
+        obj: authenticateUserWithPhoneAndPassword(data: { phone: $phone, password: $password, captcha: $captcha }) {
             item {
                 id
             }
@@ -50,8 +50,8 @@ const SIGNIN_BY_PHONE_AND_PASSWORD_MUTATION = gql`
     }
 ` 
 const START_PASSWORD_RECOVERY_MUTATION = gql`
-    mutation startPasswordRecovery($email: String!, $recaptcha: String){
-        status: startPasswordRecovery(email: $email, recaptcha: $recaptcha)
+    mutation startPasswordRecovery($email: String!, $captcha: String){
+        status: startPasswordRecovery(email: $email, captcha: $captcha)
     }
 `
 /* AUTOGENERATE MARKER <CONST> */

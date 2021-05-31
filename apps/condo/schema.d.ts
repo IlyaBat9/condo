@@ -26,7 +26,7 @@ export type AcceptOrRejectOrganizationInviteInput = {
 export type AuthenticateUserWithPhoneAndPasswordInput = {
   phone: Scalars['String'];
   password: Scalars['String'];
-  recaptcha?: Maybe<Scalars['String']>;
+  captcha?: Maybe<Scalars['String']>;
 };
 
 export type AuthenticateUserWithPhoneAndPasswordOutput = {
@@ -6737,7 +6737,7 @@ export type MutationAuthenticateUserWithPhoneAndPasswordArgs = {
 
 export type MutationStartPasswordRecoveryArgs = {
   email: Scalars['String'];
-  recaptcha?: Maybe<Scalars['String']>;
+  captcha?: Maybe<Scalars['String']>;
 };
 
 

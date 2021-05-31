@@ -1,7 +1,11 @@
 const MIN_PASSWORD_LENGTH = 8
+const SMS_CODE_LENGTH = 6
+const SMS_CODE_TTL = 30 * 1000
 const SAFE_CAPTCHA_SCORE = 0.5
 
 module.exports = {
     MIN_PASSWORD_LENGTH,
+    SMS_CODE_LENGTH,
+    SMS_CODE_TTL,
     SAFE_CAPTCHA_SCORE,
 }

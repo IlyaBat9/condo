@@ -70,8 +70,8 @@ const SignInForm = (): React.ReactElement => {
 
     const onFormSubmit = async _values => {
         setIsLoading(true)
-        const recaptcha = await handleReCaptchaVerify('signIn')
-        const values = { ..._values, recaptcha }
+        const captcha = await handleReCaptchaVerify('signIn')
+        const values = { ..._values, captcha }
         return runMutation({
             mutation: signinByPhoneAndPassword,
             variables: values,

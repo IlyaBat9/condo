@@ -1,13 +1,14 @@
 const isEmpty = require('lodash/isEmpty')
 const { SAFE_CAPTCHA_SCORE } = require('@condo/domains/user/constants/common')
 const CAPTCHA_SCORE_URL = 'https://www.google.com/recaptcha/api/siteverify'
-const { SERVER_KEY } = process.env.GOOGLE_RECAPTCHA_CONFIG ? JSON.parse(process.env.GOOGLE_RECAPTCHA_CONFIG) : {}
+const conf = require('@core/config')
+const { SERVER_KEY } = conf.GOOGLE_RECAPTCHA_CONFIG ? JSON.parse(conf.GOOGLE_RECAPTCHA_CONFIG) : {}
 
 if (isEmpty(SERVER_KEY)) {
-    console.error('Recaptcha not configured')
+    console.error('Google reCaptcha not configured')
 }
 
-const onRecaptchaCheck = ({ success, challenge_ts, hostname, score, action }) => {
+const onCaptchaCheck = ({ success, challenge_ts, hostname, score, action }) => {
     console.log(
         (score < SAFE_CAPTCHA_SCORE) ? '\x1b[31m' : '\x1b[32m',
         `Recaptcha: ${action} - [${score}]: ${success}`,         
@@ -17,7 +18,7 @@ const onRecaptchaCheck = ({ success, challenge_ts, hostname, score, action }) =>
     )
 } 
 
-const recaptchaCheck = async (response) => {
+const captchaCheck = async (response) => {
     const serverAnswer = await fetch(CAPTCHA_SCORE_URL, {
         headers: {
             'Content-Type': 'application/x-www-form-urlencoded',
@@ -27,7 +28,7 @@ const recaptchaCheck = async (response) => {
     })
     if (serverAnswer.ok) {
         const result = await serverAnswer.json()
-        onRecaptchaCheck(result)
+        onCaptchaCheck(result)
         return result
     } else {
         console.log('BAD Server response: ', serverAnswer)
@@ -35,5 +36,5 @@ const recaptchaCheck = async (response) => {
 }
 
 module.exports = {
-    recaptchaCheck,
+    captchaCheck,
 }

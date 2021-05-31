@@ -15,11 +15,11 @@ import { useAuth } from '@core/next/auth'
 import { useMutation } from '@core/next/apollo'
 import { runMutation } from '@condo/domains/common/utils/mutations.utils'
 import { ALREADY_REGISTERED, MIN_PASSWORD_LENGTH_ERROR, EMAIL_ALREADY_REGISTERED_ERROR } from '@condo/domains/user/constants/errors'
-
+import { SMS_CODE_LENGTH } from '@condo/domains/user/constants/common'
 import { colors } from '@condo/domains/common/constants/style'
 
 const POLICY_LOCATION = '/policy.pdf'
-const SMS_CODE_LENGTH = 6
+
 
 const LINK_STYLE = { color: colors.sberPrimary[7] }
 const INPUT_STYLE = { width: '20em' }
@@ -227,7 +227,6 @@ const ValidatePhoneForm = ({ onFinish, onReset }): React.ReactElement<IValidateP
 
     async function resetPhone () {
         await signout()
-        resetRecaptcha()
         onReset()
     }
 

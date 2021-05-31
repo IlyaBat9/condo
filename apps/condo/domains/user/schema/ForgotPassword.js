@@ -12,7 +12,7 @@ const { COUNTRIES, RUSSIA_COUNTRY } = require('@condo/domains/common/constants/c
 const { WRONG_EMAIL_ERROR, MULTIPLE_ACCOUNTS_MATCHES, RESET_TOKEN_NOT_FOUND, PASSWORD_TOO_SHORT } = require('@condo/domains/user/constants/errors')
 const { has, isEmpty } = require('lodash')
 const { BOT_EMAIL } = require('@condo/domains/common/constants/requisites')
-const { recaptchaCheck } = require('@condo/domains/common/utils/googleRecaptcha3')
+const { captchaCheck } = require('@condo/domains/common/utils/googleRecaptcha3')
 
 
 const USER_OWNED_FIELD = {
@@ -71,12 +71,11 @@ const ForgotPasswordService = new GQLCustomSchema('ForgotPasswordService', {
     mutations: [
         {
             access: true,
-            schema: 'startPasswordRecovery(email: String!, recaptcha: String): String',
+            schema: 'startPasswordRecovery(email: String!, captcha: String): String',
             resolver: async (parent, args, context, info, extra = {}) => {
-                console.log('startPasswordRecovery', args, info.variableValues)
-                const { email, recaptcha } = args
-                if (!isEmpty(recaptcha)) {
-                    recaptchaCheck(recaptcha)
+                const { email, captcha } = args
+                if (!isEmpty(captcha)) {
+                    captchaCheck(captcha)
                 }                
                 const sender = has(args, 'sender') ? args.sender : BOT_EMAIL
                 const extraToken = extra.extraToken || uuid()

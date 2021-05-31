@@ -10,6 +10,10 @@ const MIN_PASSWORD_LENGTH_ERROR = '[register:password:minLength'
 const ALREADY_REGISTERED = '[unique:phone:multipleFound'
 const RESET_TOKEN_NOT_FOUND = '[resetPassword:token:notFound'
 const PASSWORD_TOO_SHORT = '[password:min:length'
+const SIGNIN_EXPIRED = '[signin:experied'
+const SIGNIN_SMS_CODE_EXPIRED = '[signin:smscode:experied'
+const SIGNIN_SMS_CODE_VERIFICATION_FAILED = '[signin:smscode:verify:failed'
+const SIGNIN_SMS_CODE_MAX_VERIFICATION_NUMBER_REACHED = '[signin:smscode:verify:tooManyRequests'
 
 module.exports = {
     WRONG_PASSWORD_ERROR,
