@@ -10,8 +10,9 @@ const { sendMessage } = require('@condo/domains/notification/utils/serverSchema'
 const { MIN_PASSWORD_LENGTH } = require('@condo/domains/user/constants/common')
 const { COUNTRIES, RUSSIA_COUNTRY } = require('@condo/domains/common/constants/countries')
 const { WRONG_EMAIL_ERROR, MULTIPLE_ACCOUNTS_MATCHES, RESET_TOKEN_NOT_FOUND, PASSWORD_TOO_SHORT } = require('@condo/domains/user/constants/errors')
-const has = require('lodash/has')
+const { has, isEmpty } = require('lodash')
 const { BOT_EMAIL } = require('@condo/domains/common/constants/requisites')
+const { captchaCheck } = require('@condo/domains/common/utils/googleRecaptcha3')
 
 const USER_OWNED_FIELD = {
     schemaDoc: 'Ref to the user. The object will be deleted if the user ceases to exist',
@@ -69,9 +70,12 @@ const ForgotPasswordService = new GQLCustomSchema('ForgotPasswordService', {
     mutations: [
         {
             access: true,
-            schema: 'startPasswordRecovery(email: String!): String',
+            schema: 'startPasswordRecovery(email: String!, captcha: String): String',
             resolver: async (parent, args, context, info, extra = {}) => {
-                const { email } = args
+                const { email, captcha } = args
+                if (!isEmpty(captcha)) {
+                    captchaCheck(captcha)
+                }                
                 const sender = has(args, 'sender') ? args.sender : BOT_EMAIL
                 const extraToken = extra.extraToken || uuid()
                 const extraTokenExpiration = extra.extraTokenExpiration || parseInt(RESET_PASSWORD_TOKEN_EXPIRY)

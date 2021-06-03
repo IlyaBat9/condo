@@ -1,5 +1,5 @@
 import AuthLayout, { AuthLayoutContext, AuthPage } from '@condo/domains/common/components/containers/BaseLayout/AuthLayout'
-import React, { useState, useContext } from 'react'
+import React, { useState, useContext, useCallback } from 'react'
 import Router from 'next/router'
 import { getQueryParams } from '@condo/domains/common/utils/url.utils'
 import { useAuth } from '@core/next/auth'
@@ -14,6 +14,7 @@ import { runMutation } from '@condo/domains/common/utils/mutations.utils'
 import { useMutation } from '@core/next/apollo'
 import { SIGNIN_BY_PHONE_AND_PASSWORD_MUTATION } from '@condo/domains/user/gql'
 import { WRONG_PHONE_ERROR, WRONG_PASSWORD_ERROR } from '@condo/domains/user/constants/errors'
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3'
 
 const LINK_STYLE = { color: colors.sberPrimary[7] }
 const INPUT_STYLE = { width: '20em' }
@@ -51,6 +52,12 @@ const SignInForm = (): React.ReactElement => {
 
     const [isLoading, setIsLoading] = useState(false)
     const [signinByPhoneAndPassword] = useMutation(SIGNIN_BY_PHONE_AND_PASSWORD_MUTATION)
+    const { executeRecaptcha } = useGoogleReCaptcha()
+    const handleReCaptchaVerify = useCallback(async (action) => {
+        const userToken = await executeRecaptcha(action)
+        return userToken
+    }, [executeRecaptcha])
+
     const ErrorToFormFieldMsgMapping = {
         [WRONG_PHONE_ERROR]: {
             name: 'phone',
@@ -62,7 +69,9 @@ const SignInForm = (): React.ReactElement => {
         },
     }
     
-    const onFormSubmit = values => {
+    const onFormSubmit = async _values => {
+        const captcha = await handleReCaptchaVerify('signIn')
+        const values = { ..._values, captcha }        
         setIsLoading(true)
         return runMutation({
             mutation: signinByPhoneAndPassword,
@@ -78,6 +87,7 @@ const SignInForm = (): React.ReactElement => {
             form,
             ErrorToFormFieldMsgMapping,
         }).catch(error => {
+            console.error('SignIn error', error)
             setIsLoading(false)
         })
     }

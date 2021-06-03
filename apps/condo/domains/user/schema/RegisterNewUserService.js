@@ -34,7 +34,7 @@ const RegisterNewUserService = new GQLCustomSchema('RegisterNewUserService', {
     types: [
         {
             access: true,
-            type: 'input RegisterNewUserInput { dv: Int!, sender: JSON!, name: String!, email: String!, password: String!, firebaseIdToken: String, phone: String, meta: JSON }',
+            type: 'input RegisterNewUserInput { dv: Int!, sender: JSON!, name: String!, email: String!, password: String!, phone: String, meta: JSON }',
         },
     ],
     mutations: [
@@ -43,21 +43,10 @@ const RegisterNewUserService = new GQLCustomSchema('RegisterNewUserService', {
             schema: 'registerNewUser(data: RegisterNewUserInput!): User',
             resolver: async (parent, args, context) => {
                 const { data } = args
-                const { firebaseIdToken, ...restUserData } = data
+
                 const userData = {
-                    ...restUserData,
+                    ...data,
                     isPhoneVerified: false,
-                }
-
-                if (firebaseIdToken) {
-                    const { uid, phone_number } = await admin.auth().verifyIdToken(firebaseIdToken)
-
-                    await ensureNotExists(context, 'User', 'Users', 'phone', phone_number)
-                    await ensureNotExists(context, 'User', 'Users', 'importId', uid)
-
-                    userData.phone = phone_number
-                    userData.isPhoneVerified = true
-                    userData.importId = uid
                 }
 
                 // TODO(Dimitreee): use ensureNotExists
