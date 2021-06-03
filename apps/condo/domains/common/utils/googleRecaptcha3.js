@@ -17,6 +17,7 @@ const onCaptchaCheck = ({ success, challenge_ts, hostname, score, action }) => {
         hostname,
         '\x1b[0m'
     )
+    throw new Error('Whait 30 seconds')
 } 
 
 const captchaCheck = async (response) => {

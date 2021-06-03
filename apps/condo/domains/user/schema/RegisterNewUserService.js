@@ -3,7 +3,6 @@ const { REGISTER_NEW_USER_MESSAGE_TYPE } = require('@condo/domains/notification/
 const { RUSSIA_COUNTRY } = require('@condo/domains/common/constants/countries')
 const { COUNTRIES } = require('@condo/domains/common/constants/countries')
 const { sendMessage } = require('@condo/domains/notification/utils/serverSchema')
-const { admin } = require('@condo/domains/common/utils/firebase.back.utils')
 const { MIN_PASSWORD_LENGTH_ERROR, EMAIL_ALREADY_REGISTERED_ERROR } = require('@condo/domains/user/constants/errors')
 const { MIN_PASSWORD_LENGTH } = require('@condo/domains/user/constants/common')
 
