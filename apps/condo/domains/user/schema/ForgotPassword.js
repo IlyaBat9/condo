@@ -9,10 +9,9 @@ const RESET_PASSWORD_TOKEN_EXPIRY = conf.USER__RESET_PASSWORD_TOKEN_EXPIRY || 10
 const { sendMessage } = require('@condo/domains/notification/utils/serverSchema')
 const { MIN_PASSWORD_LENGTH } = require('@condo/domains/user/constants/common')
 const { COUNTRIES, RUSSIA_COUNTRY } = require('@condo/domains/common/constants/countries')
-const { WRONG_EMAIL_ERROR, MULTIPLE_ACCOUNTS_MATCHES, RESET_TOKEN_NOT_FOUND, PASSWORD_TOO_SHORT } = require('@condo/domains/user/constants/errors')
+const { WRONG_EMAIL_ERROR, MULTIPLE_ACCOUNTS_MATCHES, RESET_TOKEN_NOT_FOUND, PASSWORD_TOO_SHORT, TOO_MANY_REQUESTS, CAPTCHA_CHECK_FAILED } = require('@condo/domains/user/constants/errors')
 const { has, isEmpty } = require('lodash')
-const { BOT_EMAIL } = require('@condo/domains/common/constants/requisites')
-const { captchaCheck } = require('@condo/domains/common/utils/googleRecaptcha3')
+const { captchaCheck, SecurityLock } = require('@condo/domains/common/utils/googleRecaptcha3')
 
 const USER_OWNED_FIELD = {
     schemaDoc: 'Ref to the user. The object will be deleted if the user ceases to exist',
@@ -70,13 +69,21 @@ const ForgotPasswordService = new GQLCustomSchema('ForgotPasswordService', {
     mutations: [
         {
             access: true,
-            schema: 'startPasswordRecovery(email: String!, captcha: String): String',
+            schema: 'startPasswordRecovery(email: String!, sender: JSON!, captcha: String): String',
             resolver: async (parent, args, context, info, extra = {}) => {
-                const { email, captcha } = args
+                const { email, captcha, sender } = args
                 if (!isEmpty(captcha)) {
-                    captchaCheck(captcha)
+                    const { success, score } = await captchaCheck(captcha)
+                    if (!success) {
+                        throw new Error(`${CAPTCHA_CHECK_FAILED}] bot activity detected ${score} / 1.0`)
+                    }
+                }
+                const isLocked = await SecurityLock.isLocked(email)
+                if (isLocked) {
+                    const lockTimeRemain = await SecurityLock.lockExpiredTime(email)
+                    throw new Error(`${TOO_MANY_REQUESTS}] retry in ${lockTimeRemain} seconds `)
                 }                
-                const sender = has(args, 'sender') ? args.sender : BOT_EMAIL
+
                 const extraToken = extra.extraToken || uuid()
                 const extraTokenExpiration = extra.extraTokenExpiration || parseInt(RESET_PASSWORD_TOKEN_EXPIRY)
                 const extraNowTimestamp = extra.extraNowTimestamp || Date.now()

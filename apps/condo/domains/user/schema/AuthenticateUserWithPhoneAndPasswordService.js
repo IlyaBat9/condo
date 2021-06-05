@@ -2,9 +2,9 @@ const { getById, getSchemaCtx } = require('@core/keystone/schema')
 const { GQLCustomSchema } = require('@core/keystone/schema')
 const { normalizePhone } = require('@condo/domains/common/utils/phone')
 const { User } = require('@condo/domains/user/utils/serverSchema')
-const { WRONG_PASSWORD_ERROR } = require('@condo/domains/user/constants/errors')
+const { WRONG_PASSWORD_ERROR, TOO_MANY_REQUESTS, CAPTCHA_CHECK_FAILED } = require('@condo/domains/user/constants/errors')
 const isEmpty = require('lodash/isEmpty')
-const { captchaCheck } = require('@condo/domains/common/utils/googleRecaptcha3')
+const { captchaCheck, SecurityLock } = require('@condo/domains/common/utils/googleRecaptcha3')
 
 const AuthenticateUserWithPhoneAndPasswordService = new GQLCustomSchema('AuthenticateUserWithPhoneAndPasswordService', {
     types: [
@@ -24,9 +24,17 @@ const AuthenticateUserWithPhoneAndPasswordService = new GQLCustomSchema('Authent
             resolver: async (parent, args, context, info, extra = {}) => {
                 const { phone: inputPhone, password, captcha } = info.variableValues
                 if (!isEmpty(captcha)) {
-                    captchaCheck(captcha)
+                    const { success, score } = await captchaCheck(captcha)
+                    if (!success) {
+                        throw new Error(`${CAPTCHA_CHECK_FAILED}] bot activity detected ${score} / 1.0`)
+                    } 
                 }
                 const phone = normalizePhone(inputPhone)
+                const isLocked = await SecurityLock.isLocked(phone)
+                if (isLocked) {
+                    const lockTimeRemain = await SecurityLock.lockExpiredTime(phone)
+                    throw new Error(`${TOO_MANY_REQUESTS}] retry in ${lockTimeRemain} seconds `)
+                }                
                 const users = await User.getAll(context, { phone })
                 if (users.length !== 1) {
                     const msg = `${WRONG_PASSWORD_ERROR}] Unable to find user. Try to register`
@@ -40,6 +48,7 @@ const AuthenticateUserWithPhoneAndPasswordService = new GQLCustomSchema('Authent
                 PasswordStrategy.config.identityField = 'phone'
                 const { success, message } = await PasswordStrategy.validate({ phone, password })
                 if (!success) {
+                    await SecurityLock.lock(phone)
                     throw new Error(`${WRONG_PASSWORD_ERROR}] ${message}`)
                 }
                 const authToken = await context.startAuthedSession({ item: users[0], list: keystone.lists['User'] })

@@ -161,6 +161,8 @@
   "pages.auth.WeMustMakeSureThatYouAreHuman": "Нам нужно убедиться, что вы человек",
   "pages.auth.WhatDoYouWantOthersToCallYou": "Как вас будут называть другие?",
   "pages.auth.WrongPassword": "Неверный пароль",
+  "pages.auth.TooManyRequests": "Повторите попытку позже",
+  "pages.auth.SecurityCheckFailed": "Поздравляем. Вы - бот",
   "pages.condo.buildings.PageTitle": "Объекты",
   "pages.condo.e-voting.id.PageTitle": "Онлайн собрание",
   "pages.condo.e-voting.index.CreateEVotingButtonLabel": "Создать новое собрание",

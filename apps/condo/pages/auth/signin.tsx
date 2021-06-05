@@ -3,7 +3,7 @@ import React, { useState, useContext, useCallback } from 'react'
 import Router from 'next/router'
 import { getQueryParams } from '@condo/domains/common/utils/url.utils'
 import { useAuth } from '@core/next/auth'
-import { Form, Input, Typography } from 'antd'
+import { Form, Input, Space, Typography } from 'antd'
 import Head from 'next/head'
 import { Button } from '@condo/domains/common/components/Button'
 import MaskedInput from 'antd-mask-input'
@@ -13,8 +13,12 @@ import { FormattedMessage } from 'react-intl'
 import { runMutation } from '@condo/domains/common/utils/mutations.utils'
 import { useMutation } from '@core/next/apollo'
 import { SIGNIN_BY_PHONE_AND_PASSWORD_MUTATION } from '@condo/domains/user/gql'
-import { WRONG_PHONE_ERROR, WRONG_PASSWORD_ERROR } from '@condo/domains/user/constants/errors'
+import { WRONG_PHONE_ERROR, WRONG_PASSWORD_ERROR, TOO_MANY_REQUESTS, CAPTCHA_CHECK_FAILED } from '@condo/domains/user/constants/errors'
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3'
+import { LOCK_TIMEOUT } from '@condo/domains/user/constants/common'
+import { CountDownTimer } from '@condo/domains/common/components/CountDownTimer'
+import isEmpty from 'lodash/isEmpty'
+
 
 const LINK_STYLE = { color: colors.sberPrimary[7] }
 const INPUT_STYLE = { width: '20em' }
@@ -49,6 +53,8 @@ const SignInForm = (): React.ReactElement => {
     const ResetMsg = intl.formatMessage({ id: 'pages.auth.signin.ResetPasswordLinkTitle' })
     const UserNotFound = intl.formatMessage({ id: 'pages.auth.UserIsNotFound' })
     const PasswordMismatch = intl.formatMessage({ id: 'pages.auth.WrongPassword' }) 
+    const TooManyRequests = intl.formatMessage({ id: 'pages.auth.TooManyRequests' })
+    const SecurityCheckFailed = intl.formatMessage({ id: 'pages.auth.SecurityCheckFailed' })
 
     const [isLoading, setIsLoading] = useState(false)
     const [signinByPhoneAndPassword] = useMutation(SIGNIN_BY_PHONE_AND_PASSWORD_MUTATION)
@@ -67,11 +73,19 @@ const SignInForm = (): React.ReactElement => {
             name: 'password',
             errors: [PasswordMismatch],
         },
+        [TOO_MANY_REQUESTS]: {
+            name: 'password',
+            errors: [TooManyRequests],
+        },
+        [CAPTCHA_CHECK_FAILED]: {
+            name: 'password',
+            errors: [SecurityCheckFailed],
+        },
     }
     
-    const onFormSubmit = async _values => {
+    const signInAction = async () => {
         const captcha = await handleReCaptchaVerify('signIn')
-        const values = { ..._values, captcha }        
+        const values = { ...form.getFieldsValue(['phone', 'password']), captcha }   
         setIsLoading(true)
         return runMutation({
             mutation: signinByPhoneAndPassword,
@@ -91,19 +105,18 @@ const SignInForm = (): React.ReactElement => {
             setIsLoading(false)
         })
     }
-
     return (
         <Form
             form={form}
-            name="signin"
-            onFinish={onFormSubmit}
+            name={'signin'}
+            // onFinish={signInAction}
             initialValues={initialValues}
             colon={false}
             style={{ marginTop: '36px' }}
             requiredMark={false}
         >
             <Form.Item
-                name="phone"
+                name={'phone'}
                 label={PhoneMsg}
                 labelAlign='left'
                 labelCol={{ flex: 1 }}
@@ -113,7 +126,7 @@ const SignInForm = (): React.ReactElement => {
             </Form.Item>
 
             <Form.Item
-                name="password"
+                name={'password'}
                 label={PasswordMsg}
                 labelAlign='left'
                 labelCol={{ flex: 1 }} 
@@ -122,18 +135,26 @@ const SignInForm = (): React.ReactElement => {
             >
                 <Input.Password style={INPUT_STYLE}  />
             </Form.Item>
-            
             <div style={{ paddingTop: '4em', display: 'flex', justifyContent: 'space-between', width: '100%' }}>
-                <Button
-                    key='submit'
-                    type='sberPrimary'
-                    htmlType="submit" 
-                    style={{ justifySelf: 'flex-start' }}
-                    loading={isLoading}
-                >
-                    {SignInMsg}
-                </Button>
-
+                <CountDownTimer action={signInAction} id={'SIGNIN_ACTION'} timeout={LOCK_TIMEOUT}>
+                    {({ countdown, runAction }) => {
+                        const isCountDownActive = countdown > 0 && !isEmpty(form.getFieldsError().map(field => field.errors).flat())
+                        return (
+                            <Space size={12}>  
+                                <Button
+                                    onClick={runAction}
+                                    type={isCountDownActive ? 'sberGrey' : 'sberPrimary'}                                    
+                                    disabled={isCountDownActive}
+                                    htmlType='submit'
+                                    style={{ justifySelf: 'flex-start' }}
+                                    loading={isLoading}
+                                >
+                                    {isCountDownActive ? `... ${countdown}` : SignInMsg}
+                                </Button>
+                            </Space>
+                        )
+                    }}
+                </CountDownTimer>
                 <Typography.Text  type='secondary'>
                     <FormattedMessage
                         id='pages.auth.signin.ResetPasswordLink'

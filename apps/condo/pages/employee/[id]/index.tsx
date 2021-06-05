@@ -108,6 +108,7 @@ export const EmployeeInfoPage = () => {
                                                 />
                                             </Col>
                                             {isEmployeeReinvitable && (
+                                                
                                                 <Alert showIcon type='warning' message={
                                                     <>
                                                         {EmployeeDidntEnteredMessage}

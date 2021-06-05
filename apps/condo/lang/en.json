@@ -161,6 +161,8 @@
   "pages.auth.WeMustMakeSureThatYouAreHuman": "We must make sure that your are a human",
   "pages.auth.WhatDoYouWantOthersToCallYou": "What do you want others to call you?",
   "pages.auth.WrongPassword": "Wrong password",
+  "pages.auth.TooManyRequests": "Please, try later",
+  "pages.auth.SecurityCheckFailed": "Captcha check failed",
   "pages.condo.buildings.PageTitle": "Houses",
   "pages.condo.e-voting.id.PageTitle": "Online voting",
   "pages.condo.e-voting.index.CreateEVotingButtonLabel": "Create online voting",

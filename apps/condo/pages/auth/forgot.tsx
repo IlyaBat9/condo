@@ -1,4 +1,4 @@
-import { Form, Input, Typography } from 'antd'
+import { Form, Input, Typography, Space } from 'antd'
 import { Button } from '@condo/domains/common/components/Button'
 import AuthLayout, { AuthLayoutContext, AuthPage } from '@condo/domains/common/components/containers/BaseLayout/AuthLayout'
 import LoadingOrErrorPage from '@condo/domains/common/components/containers/LoadingOrErrorPage'
@@ -10,8 +10,12 @@ import { FormattedMessage } from 'react-intl'
 import { runMutation } from '@condo/domains/common/utils/mutations.utils'
 import { useMutation } from '@core/next/apollo'
 import { START_PASSWORD_RECOVERY_MUTATION } from '@condo/domains/user/gql'
-import { WRONG_EMAIL_ERROR } from '@condo/domains/user/constants/errors'
+import { WRONG_EMAIL_ERROR, TOO_MANY_REQUESTS, CAPTCHA_CHECK_FAILED } from '@condo/domains/user/constants/errors'
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3'
+import { LOCK_TIMEOUT } from '@condo/domains/user/constants/common'
+import { CountDownTimer } from '@condo/domains/common/components/CountDownTimer'
+import isEmpty from 'lodash/isEmpty'
+import { getClientSideSenderInfo } from '@condo/domains/common/utils/userid.utils'
 
 
 const LINK_STYLE = { color: colors.sberPrimary[7] }
@@ -31,6 +35,9 @@ const ResetPage: AuthPage = () => {
     const CheckEmailMsg = intl.formatMessage({ id: 'pages.auth.reset.CheckEmail' })
     const ReturnToLoginPage = intl.formatMessage({ id: 'pages.auth.reset.ReturnToLoginPage' })
     const EmailPlaceholder = intl.formatMessage({ id: 'example.Email' })
+    const TooManyRequests = intl.formatMessage({ id: 'pages.auth.TooManyRequests' })
+    const SecurityCheckFailed = intl.formatMessage({ id: 'pages.auth.SecurityCheckFailed' })
+
 
     const [isLoading, setIsLoading] = useState(false)
     const [isSuccessMessage, setIsSuccessMessage] = useState(false)
@@ -47,8 +54,16 @@ const ResetPage: AuthPage = () => {
             name: 'email',
             errors: [EmailIsNotRegisteredMsg],
         },
+        [TOO_MANY_REQUESTS]: {
+            name: 'email',
+            errors: [TooManyRequests],
+        },
+        [CAPTCHA_CHECK_FAILED]: {
+            name: 'email',
+            errors: [SecurityCheckFailed],
+        },
     }
-    if (isLoading) {
+    if (isLoading && false) {
         return <LoadingOrErrorPage title={ResetTitle} loading={isLoading} error={null}/>
     }
     if (isSuccessMessage) {
@@ -64,13 +79,17 @@ const ResetPage: AuthPage = () => {
             </div>
         )    
     }
-
-    const onFormSubmit = async _values => {
+    const forgotAction = async () => {
         setIsLoading(true)
         const captcha = await handleReCaptchaVerify('forgotPassword')
-        const values = { ..._values, captcha }
+        const sender = {
+            dv: 1,
+            sender: getClientSideSenderInfo(),
+        }
+        const values = { ...form.getFieldsValue(['email']), captcha, sender }
+        console.log('values are values', values)
         if (values.email) {
-            values.email = values.email.toLowerCase()
+            values.email = values.email.toLowerCase().trim()
         }
         setIsLoading(true)
         return runMutation({
@@ -85,6 +104,7 @@ const ResetPage: AuthPage = () => {
             form,
             ErrorToFormFieldMsgMapping,
         }).catch(err => {
+            console.error(err)
             setIsLoading(false)
         })
     }
@@ -95,8 +115,8 @@ const ResetPage: AuthPage = () => {
             <Typography.Paragraph style={{ textAlign: 'left' }}>{InstructionsMsg}</Typography.Paragraph>    
             <Form
                 form={form}
-                name="forgot-password"
-                onFinish={onFormSubmit}
+                name='forgot-password'
+                onFinish={forgotAction}
                 initialValues={initialValues}
                 colon={false}
                 style={{ marginTop: '40px' }}
@@ -112,15 +132,25 @@ const ResetPage: AuthPage = () => {
                     <Input placeholder={EmailPlaceholder}  style={INPUT_STYLE}/>
                 </Form.Item>
                 <Form.Item style={{ textAlign: 'left', marginTop: '36px' }}>
-                    <Button
-                        key='submit'
-                        type='sberPrimary'
-                        htmlType="submit" 
-                        loading={isLoading}
-                        style={{ marginTop: '24px' }}
-                    >
-                        {RestorePasswordMsg}
-                    </Button>
+                    <CountDownTimer action={async () => form.submit()} id={'FORGOT_ACTION'} timeout={LOCK_TIMEOUT}>
+                        {({ countdown, runAction }) => {
+                            const isCountDownActive = countdown > 0 && !isEmpty(form.getFieldsError().map(field => field.errors).flat())
+                            return (
+                                <Space size={12}>  
+                                    <Button
+                                        onClick={runAction}
+                                        type={isCountDownActive ? 'sberGrey' : 'sberPrimary'}
+                                        disabled={isCountDownActive}
+                                        htmlType='submit'
+                                        loading={isLoading}
+                                        style={{ marginTop: '24px' }}
+                                    >
+                                        {isCountDownActive ? `... ${countdown}` : RestorePasswordMsg}{}
+                                    </Button>
+                                </Space>
+                            )
+                        }}
+                    </CountDownTimer>
                 </Form.Item>
             </Form>
         </div>

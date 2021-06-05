@@ -15,6 +15,8 @@ const SIGNIN_EXPIRED = '[signin:experied'
 const SIGNIN_SMS_CODE_EXPIRED = '[signin:smscode:experied'
 const SIGNIN_SMS_CODE_VERIFICATION_FAILED = '[signin:smscode:verify:failed'
 const SIGNIN_SMS_CODE_MAX_VERIFICATION_NUMBER_REACHED = '[signin:smscode:verify:tooManyRequests'
+const TOO_MANY_REQUESTS = '[security:tooManyRequests'
+const CAPTCHA_CHECK_FAILED = '[security:captcha:failed'
 
 module.exports = {
     WRONG_PASSWORD_ERROR,
@@ -23,6 +25,8 @@ module.exports = {
     ALREADY_REGISTERED,
     MULTIPLE_ACCOUNTS_MATCHES,
     WRONG_PHONE_ERROR,
+    TOO_MANY_REQUESTS,
+    CAPTCHA_CHECK_FAILED,
     PASSWORD_TOO_SHORT,
     AUTH_BY_PASSWORD_FAILED_ERROR,
     EMAIL_ALREADY_REGISTERED_ERROR,
