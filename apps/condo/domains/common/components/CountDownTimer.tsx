@@ -45,12 +45,12 @@ const getCountDownDateFromCookies = (countDownId) => {
 
 type CountDownChildrenType = (
     // TODO(Dimitreee): remove any
-    { countdown, runAction, loading }: { countdown: number, runAction: () => Promise<any>, loading: boolean }
+    { countdown, runAction, loading }: { countdown: number, runAction: () => Promise<unknown>, loading: boolean }
 ) => JSX.Element
 
 interface ICountDownTimer {
     // TODO(Dimitreee): remove any
-    action: (...args: any[]) => Promise<any>
+    action: (...args: unknown[]) => Promise<unknown>
     id: string
     timeout?: number
     children: CountDownChildrenType

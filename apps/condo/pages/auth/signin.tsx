@@ -109,7 +109,6 @@ const SignInForm = (): React.ReactElement => {
         <Form
             form={form}
             name={'signin'}
-            // onFinish={signInAction}
             initialValues={initialValues}
             colon={false}
             style={{ marginTop: '36px' }}
@@ -142,14 +141,20 @@ const SignInForm = (): React.ReactElement => {
                         return (
                             <Space size={12}>  
                                 <Button
-                                    onClick={runAction}
+                                    onClick={() => {
+                                        form.validateFields().then(() => {
+                                            runAction()
+                                        }).catch(_ => {
+                                            // form not valid do not invoke runAction
+                                        })
+                                    }}
                                     type={isCountDownActive ? 'sberGrey' : 'sberPrimary'}                                    
                                     disabled={isCountDownActive}
                                     htmlType='submit'
                                     style={{ justifySelf: 'flex-start' }}
                                     loading={isLoading}
                                 >
-                                    {isCountDownActive ? `... ${countdown}` : SignInMsg}
+                                    {isCountDownActive ? `${SignInMsg} ${countdown}` : SignInMsg}
                                 </Button>
                             </Space>
                         )

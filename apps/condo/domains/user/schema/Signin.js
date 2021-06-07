@@ -24,7 +24,10 @@ const SIGNIN_TOKEN_EXPIRY = conf.SIGNIN_TOKEN_EXPIRY || 1000 * 60 * 60 * 1
  *  Flow:
  *    1. User request signin
  *    2. SignIn action is created now user have 3 attempts to confrm phone 
- *    3. User 
+ *    3. User confirmed phone and got some times to complete registration
+ *    4. User complet registration and log in
+ *    5. User failed at sms code confirmation and starts from beginning
+ *    6. User failed to complete registration and starts from beginning
  */
 
 const SigninAction = new GQLListSchema('ForgotPasswordAction', {

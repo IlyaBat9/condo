@@ -10,7 +10,10 @@ const { sendMessage } = require('@condo/domains/notification/utils/serverSchema'
 const { MIN_PASSWORD_LENGTH } = require('@condo/domains/user/constants/common')
 const { COUNTRIES, RUSSIA_COUNTRY } = require('@condo/domains/common/constants/countries')
 const { WRONG_EMAIL_ERROR, MULTIPLE_ACCOUNTS_MATCHES, RESET_TOKEN_NOT_FOUND, PASSWORD_TOO_SHORT, TOO_MANY_REQUESTS, CAPTCHA_CHECK_FAILED } = require('@condo/domains/user/constants/errors')
-const { has, isEmpty } = require('lodash')
+const isEmpty = require('lodash/isEmpty')
+// const { SENDER_FIELD, DV_FIELD } = require('@condo/domains/common/schema/fields')
+// dv: DV_FIELD,
+// sender: SENDER_FIELD,
 const { captchaCheck, SecurityLock } = require('@condo/domains/common/utils/googleRecaptcha3')
 
 const USER_OWNED_FIELD = {
@@ -148,6 +151,7 @@ const ForgotPasswordService = new GQLCustomSchema('ForgotPasswordService', {
                     variables,
                 })
                 if (createErrors) {
+                    console.error(createErrors)
                     throw new Error('[error]: Unable to create forgotten password action')
                 }
 
