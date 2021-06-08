@@ -54,12 +54,18 @@ const START_PASSWORD_RECOVERY_MUTATION = gql`
         status: startPasswordRecovery(email: $email, captcha: $captcha, sender: $sender)
     }
 `
+const START_CONFIRM_PHONE_MUTATION = gql`
+    mutation startConfirmPhoneAction($phone: String!, $dv: Int!, $sender: JSON!, $captcha: String) {
+        token: startConfirmPhoneAction(phone: $phone, dv: $dv, sender: $sender, captcha: $captcha)
+    }
+`
 /* AUTOGENERATE MARKER <CONST> */
 
 module.exports = {
     User,
     UserAdmin,
     REGISTER_NEW_USER_MUTATION,
+    START_CONFIRM_PHONE_MUTATION,
     GET_MY_USERINFO,
     SIGNIN_MUTATION,
     CHANGE_PASSWORD_WITH_TOKEN_MUTATION,

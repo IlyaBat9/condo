@@ -1,7 +1,6 @@
 import { Form, Input, Typography, Space } from 'antd'
 import { Button } from '@condo/domains/common/components/Button'
 import AuthLayout, { AuthLayoutContext, AuthPage } from '@condo/domains/common/components/containers/BaseLayout/AuthLayout'
-import LoadingOrErrorPage from '@condo/domains/common/components/containers/LoadingOrErrorPage'
 import Router from 'next/router'
 import React, { useState, useContext, useCallback } from 'react'
 import { colors } from '@condo/domains/common/constants/style'
@@ -14,9 +13,7 @@ import { WRONG_EMAIL_ERROR, TOO_MANY_REQUESTS, CAPTCHA_CHECK_FAILED } from '@con
 import { useGoogleReCaptcha } from 'react-google-recaptcha-v3'
 import { LOCK_TIMEOUT } from '@condo/domains/user/constants/common'
 import { CountDownTimer } from '@condo/domains/common/components/CountDownTimer'
-import isEmpty from 'lodash/isEmpty'
 import { getClientSideSenderInfo } from '@condo/domains/common/utils/userid.utils'
-import { convertGQLItemToFormSelectState } from '@condo/domains/organization/utils/clientSchema/OrganizationEmployee'
 
 
 const LINK_STYLE = { color: colors.sberPrimary[7] }
@@ -64,9 +61,6 @@ const ResetPage: AuthPage = () => {
             name: 'email',
             errors: [SecurityCheckFailed],
         },
-    }
-    if (isLoading && false) {
-        return <LoadingOrErrorPage title={ResetTitle} loading={isLoading} error={null}/>
     }
     if (isSuccessMessage) {
         return (

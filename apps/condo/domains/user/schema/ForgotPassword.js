@@ -120,6 +120,8 @@ const ForgotPasswordService = new GQLCustomSchema('ForgotPasswordService', {
                 const userId = userData.allUsers[0].id
 
                 const variables = {
+                    dv: 1,
+                    sender,
                     userId,
                     token: extraToken,
                     requestedAt,
@@ -130,16 +132,20 @@ const ForgotPasswordService = new GQLCustomSchema('ForgotPasswordService', {
                     context: context.createContext({ skipAccessControl: true }),
                     query: `
                         mutation createForgotPasswordAction(
+                          $dv: Int,
+                          $sender: JSON,
                           $userId: ID!,
                           $token: String,
                           $requestedAt: String,
-                          $expiresAt: String,
+                          $expiresAt: String
                         ) {
                           createForgotPasswordAction(data: {
+                            dv: $dv,
+                            sender: $sender,
                             user: { connect: { id: $userId }},
                             token: $token,
                             requestedAt: $requestedAt,
-                            expiresAt: $expiresAt,
+                            expiresAt: $expiresAt
                           }) {
                             id
                             token

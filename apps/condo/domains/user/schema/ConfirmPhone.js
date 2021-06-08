@@ -20,7 +20,7 @@ const {
 } = require('@condo/domains/user/constants/errors')
 
 const { COUNTRIES, RUSSIA_COUNTRY } = require('@condo/domains/common/constants/countries')
-const { SMS_VERIFY_CODE } = require('@condo/domains/notification/constants')
+const { SMS_VERIFY_CODE_MESSAGE_TYPE } = require('@condo/domains/notification/constants')
 
 const { 
     SMS_CODE_LENGTH, 
@@ -33,8 +33,8 @@ const {
 const whiteList = conf.SMS_WHITE_LIST ? JSON.parse(conf.SMS_WHITE_LIST) : {}
 
 const generateSmsCode = (phone) => {
-    if (has(whiteList, phone)) { // Emulate firebase white list for development 
-        return whiteList[phone]
+    if (has(whiteList, phone)) { // Emulate firebase white list for development - don't send sms
+        return Number(whiteList[phone])
     }
     return faker.datatype.number({ 
         min: Math.pow(10, SMS_CODE_LENGTH - 1), // example 6 symbols:  min = 10^(6-1) = 100000
@@ -49,7 +49,7 @@ const ConfirmPhoneAction = new GQLListSchema('ConfirmPhoneAction', {
         phone: {
             schemaDoc: 'Phone. In international E.164 format without spaces',
             type: Text,
-            kmigratorOptions: { null: true, unique: true },
+            kmigratorOptions: { null: true, unique: false },
             hooks: {
                 resolveInput: ({ resolvedData }) => {
                     return normalizePhone(resolvedData['phone'])
@@ -121,9 +121,9 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
     mutations: [
         {
             access: true,
-            schema: 'startConfirmPhoneAction(phone: String!, sender: JSON!, captcha: String): String',
+            schema: 'startConfirmPhoneAction(phone: String!, dv:Int!, sender: JSON!, captcha: String): String',
             resolver: async (parent, args, context, info, extra = {}) => {
-                const { phone: inputPhone, captcha, sender } = args
+                const { phone: inputPhone, captcha, sender, dv } = args
                 if (!isEmpty(captcha)) {
                     const { isScorePassed, score } = await captchaCheck(captcha)
                     if (!isScorePassed) {
@@ -136,30 +136,42 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                     const lockTimeRemain = await SecurityLock.lockExpiredTime(phone)
                     throw new Error(`${TOO_MANY_REQUESTS}] retry in ${lockTimeRemain} seconds `)
                 }                
+
                 const token = uuid()
                 const tokenExpiration = extra.extraTokenExpiration || parseInt(CONFIRM_PHONE_TOKEN_EXPIRY)
-                const now = extra.extraNow || (new Date(Date.now())).toISOString()
+                const now = extra.extraNow || Date.now()
                 const requestedAt = new Date(now).toISOString()
                 const expiresAt = new Date(now + tokenExpiration).toISOString()
                 const smsCode = generateSmsCode(phone)
                 const smsCodeExpiresAt = new Date(now + SMS_CODE_TTL).toISOString()
-                const smsCodeRequestedAt = new Date().toISOString()
+                const smsCodeRequestedAt = new Date(now).toISOString()
+                const variables = { 
+                    dv,
+                    sender,
+                    phone,
+                    smsCode,
+                    token,
+                    smsCodeRequestedAt,
+                    smsCodeExpiresAt,
+                    requestedAt,
+                    expiresAt,
+                }
                 const { errors: createErrors } = await context.executeGraphQL({
                     context: context.createContext({ skipAccessControl: true }),
                     query: `
-                        mutation createRegisterWithPhoneConfirmationAction(
-                          $dv: Integer!,
+                        mutation createConfirmPhoneAction(
+                          $dv: Int!,
                           $sender: JSON!,
                           $phone: String!,
-                          $smsCode: Integer!,
+                          $smsCode: Int!,
                           $token: String!,
                           $smsCodeRequestedAt: String!,
                           $smsCodeExpiresAt: String!,
                           $requestedAt: String!,
                           $expiresAt: String!,
                         ) {
-                          createRegisterAction(data: {
-                            dv:1,
+                        createConfirmPhoneAction(data: {
+                            dv:$dv,
                             sender:$sender,
                             phone: $phone,
                             smsCode: $smsCode,
@@ -174,17 +186,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                           }
                         }
                     `,
-                    variables: { 
-                        dv: 1,
-                        sender,
-                        phone,
-                        smsCode,
-                        token,
-                        smsCodeRequestedAt,
-                        smsCodeExpiresAt,
-                        requestedAt,
-                        expiresAt,
-                    },
+                    variables,
                 })
                 if (createErrors) {
                     console.error(createErrors)
@@ -194,7 +196,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                 await sendMessage(context, {
                     lang,
                     to: { phone },
-                    type: SMS_VERIFY_CODE,
+                    type: SMS_VERIFY_CODE_MESSAGE_TYPE,
                     meta: {
                         dv: 1,
                         smsCode,                        
@@ -215,7 +217,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                         throw new Error(`${CAPTCHA_CHECK_FAILED}] bot activity detected ${score} / 1.0`)
                     } 
                 }
-                const now = extra.extraNow || (new Date(Date.now())).toISOString()
+                const now = extra.extraNow || Date.now()
                 const { errors: findErrors, data } = await context.executeGraphQL({
                     context: context.createContext({ skipAccessControl: true }),
                     query: `
@@ -228,7 +230,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                           }
                         }
                     `,
-                    variables: { token, now },
+                    variables: { token, now: new Date(now).toISOString() },
                 })
                 if (findErrors) {
                     console.error(findErrors)
@@ -245,7 +247,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                 const { errors: resendSmsError } = await context.executeGraphQL({
                     context: context.createContext({ skipAccessControl: true }),
                     query: `
-                        mutation resendSmsCode($smsCode: Integer!, $smsCodeRequestedAt: String!, $smsCodeExpiresAt: String!, $retries: Integer! ) {
+                        mutation resendSmsCode($smsCode: Int!, $smsCodeRequestedAt: String!, $smsCodeExpiresAt: String!, $retries: Int! ) {
                           updateConfirmPhoneAction(id: $id, data: {
                                 smsCode: $smsCode,
                                 smsCodeExpiresAt: $smsCodeExpiresAt,
@@ -259,7 +261,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                     variables: {
                         smsCode: newSmsCode,
                         smsCodeExpiresAt: new Date(now + SMS_CODE_TTL).toISOString(),
-                        smsCodeRequestedAt: new Date().toISOString(),
+                        smsCodeRequestedAt: new Date(now).toISOString(),
                         retries: retries + 1,
                     },
                 })
@@ -271,7 +273,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                 await sendMessage(context, {
                     lang,
                     to: { phone },
-                    type: SMS_VERIFY_CODE,
+                    type: SMS_VERIFY_CODE_MESSAGE_TYPE,
                     meta: {
                         dv: 1,
                         newSmsCode,                        
@@ -292,7 +294,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                         throw new Error(`${CAPTCHA_CHECK_FAILED}] bot activity detected ${score} / 1.0`)
                     } 
                 }
-                const now = extra.extraNow || (new Date(Date.now())).toISOString()                        
+                const now = extra.extraNow || Date.now()                        
                 const { errors: findErrors, data } = await context.executeGraphQL({
                     context: context.createContext({ skipAccessControl: true }),
                     query: `
@@ -306,7 +308,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                           }
                         }
                     `,
-                    variables: { token, now },
+                    variables: { token, now: new Date(now).toISOString() },
                 })
 
                 if (findErrors || !data.confirmPhoneActions || !data.confirmPhoneActions.length) {
@@ -317,7 +319,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                     const { errors: incrementRetriesError } = await context.executeGraphQL({
                         context: context.createContext({ skipAccessControl: true }),
                         query: `
-                            mutation confirmPhoneIncrementRetries($id: ID!, $retries: Integer!) {
+                            mutation confirmPhoneIncrementRetries($id: ID!, $retries: Int!) {
                               updateConfirmPhoneAction(id: $id, data: {retries: $retries}) {
                                 id
                               }
@@ -342,7 +344,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                               }
                             }           
                         `,
-                        variables: { id, now },
+                        variables: { id, now: new Date(now).toISOString() },
                     })
                     if (markAsFailedError) {
                         console.error(markAsFailedError)
@@ -362,7 +364,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                         }           
                     `,
                     variables: { 
-                        id, 
+                        id, now: new Date(now).toISOString()
                     },
                 })
                 if (confirmPhoneCompleteErrors) {

@@ -5,64 +5,62 @@ import Router from 'next/router'
 import { Form, Input, Typography } from 'antd'
 import { Button } from '@condo/domains/common/components/Button'
 import AuthLayout, { AuthLayoutContext, AuthPage } from '@condo/domains/common/components/containers/BaseLayout/AuthLayout'
-import React, { createContext, useEffect, useState, useRef, useContext } from 'react'
-import { REGISTER_NEW_USER_MUTATION } from '@condo/domains/user/gql'
+import React, { createContext, useEffect, useState, useCallback, useContext } from 'react'
+import { REGISTER_NEW_USER_MUTATION, START_CONFIRM_PHONE_MUTATION } from '@condo/domains/user/gql'
 import { MIN_PASSWORD_LENGTH } from '@condo/domains/user/constants/common'
 import { formatPhone } from '@condo/domains/common/utils/helpers'
+import { normalizePhone } from '@condo/domains/common/utils/phone'
 import MaskedInput from 'antd-mask-input'
-import { getClientSideSenderInfo } from '@condo/domains/common/utils/userid.utils'
 import { useAuth } from '@core/next/auth'
 import { useMutation } from '@core/next/apollo'
 import { runMutation } from '@condo/domains/common/utils/mutations.utils'
 import { ALREADY_REGISTERED, MIN_PASSWORD_LENGTH_ERROR, EMAIL_ALREADY_REGISTERED_ERROR } from '@condo/domains/user/constants/errors'
 import { SMS_CODE_LENGTH } from '@condo/domains/user/constants/common'
-
 import { colors } from '@condo/domains/common/constants/style'
+import { useGoogleReCaptcha } from 'react-google-recaptcha-v3'
+import { LOCK_TIMEOUT } from '@condo/domains/user/constants/common'
+import { CountDownTimer } from '@condo/domains/common/components/CountDownTimer'
+import { getClientSideSenderInfo } from '@condo/domains/common/utils/userid.utils'
+
 
 const POLICY_LOCATION = '/policy.pdf'
 
 const LINK_STYLE = { color: colors.sberPrimary[7] }
 const INPUT_STYLE = { width: '20em' }
 
-const AuthContext = createContext({
-    isAuthenticated: false,
-    user: null,
-    sendCode: async (phone: string) => null,
-    verifyCode: async (code: string) => null,
-    signout: () => null,
+interface IAuthContext {
+    handleReCaptchaVerify: (action: unknown) => Promise<string>,
+    setconfirmPhonetoken: (token: string) => void,
+    setPhone: (phone: string) => void,
+    confirmPhonetoken: string,
+    phone: string,
+}
+
+const AuthContext = createContext<IAuthContext>({
+    handleReCaptchaVerify: async () => null,
+    setconfirmPhonetoken: (token) => null,
+    setPhone: (phone) => null,
+    confirmPhonetoken: '',
     phone: '',
 })
 
 const Auth = ({ children }): React.ReactElement => {
-    const [user, setUser] = useState(null)
-    const intl = useIntl()
-    const recaptchaVerifier = useRef(null)
-    const [, setCaptcha] = useState('')
-    const [confirmationResult, setConfirmationResult] = useState(null)
+    const [confirmPhonetoken, setconfirmPhonetoken] = useState(null)
     const [phone, setPhone] = useState('')
-
-    async function sendCode (phoneNumber) {
-        setPhone(phoneNumber)
-    }
-
-    async function verifyCode (verificationCode) {
-        const result = await confirmationResult.confirm(verificationCode)
-        result.user.token = await result.user.getIdToken(true)
-        setUser(result.user)
-    }
-
-    async function signout () {
-        return 
-    }
-
+    const { executeRecaptcha } = useGoogleReCaptcha()
+    
+    const handleReCaptchaVerify = useCallback(async (action) => {
+        const token = await executeRecaptcha(action)
+        return token
+    }, [executeRecaptcha])
+   
     return (
         <AuthContext.Provider
             value={{
-                isAuthenticated: Boolean(user),
-                user,
-                sendCode,
-                verifyCode,
-                signout,
+                handleReCaptchaVerify,
+                confirmPhonetoken,
+                setconfirmPhonetoken,
+                setPhone,
                 phone,
             }}
         >
@@ -107,19 +105,35 @@ const InputPhoneForm = ({ onFinish }): React.ReactElement<IInputPhoneFormProps> 
     const UserAgreementFileName = intl.formatMessage({ id: 'pages.auth.register.info.UserAgreementFileName' })
     const ExamplePhoneMsg = intl.formatMessage({ id: 'example.Phone' })
     const FieldIsRequiredMsg = intl.formatMessage({ id: 'FieldIsRequired' })
-    
-    const { phone, sendCode } = useContext(AuthContext)
-    const [smsSendError, setSmsSendError] = useState(null)
-
-    async function handleSendCode () {
-        setSmsSendError(null)
-        const { phone } = await form.validateFields(['phone'])
-        try {
-            await sendCode(phone)
-            onFinish()
-        } catch (error) {     
-            form.validateFields()
+    const { handleReCaptchaVerify } = useContext(AuthContext)
+    const [ smsSendError, setSmsSendError ] = useState(null)
+    const [ isloading, setIsLoading] = useState(false)
+    const ErrorToFormFieldMsgMapping = {}
+    const [startPhoneVerify] = useMutation(START_CONFIRM_PHONE_MUTATION)
+    const startConfirmPhone = async () => {
+        const registerExtraData = {
+            dv: 1,
+            sender: getClientSideSenderInfo(),
         }
+        const { phone } = form.getFieldsValue(['phone'])
+        const captcha = await handleReCaptchaVerify('register')
+        const variables = { ...registerExtraData, phone, captcha }
+        setIsLoading(true)
+        return runMutation({
+            mutation: startPhoneVerify,
+            variables,
+            onCompleted: (data) => {
+                console.log('data is data', data)
+            },
+            onFinally: () => {
+                setIsLoading(false)
+            },
+            intl,
+            form,
+            ErrorToFormFieldMsgMapping,
+        }).catch(error => {
+            setIsLoading(false)
+        })
     }
     const RegisterMsg = intl.formatMessage({ id: 'Register' })
     return (
@@ -128,10 +142,9 @@ const InputPhoneForm = ({ onFinish }): React.ReactElement<IInputPhoneFormProps> 
             <Form
                 form={form}
                 name="register-input-phone"
-                onFinish={handleSendCode}
+                onFinish={startConfirmPhone}
                 colon={false}
                 style={{ marginTop: '40px' }}
-                initialValues={{ phone }}
                 requiredMark={false}                
             >
                 
@@ -156,7 +169,7 @@ const InputPhoneForm = ({ onFinish }): React.ReactElement<IInputPhoneFormProps> 
                         }),
                     ]}              
                 >
-                    <MaskedInput mask='+1 (111) 111-11-11' value={phone} placeholder={ExamplePhoneMsg} onChange={() => setSmsSendError(null)} style={{ ...INPUT_STYLE }} />
+                    <MaskedInput mask='+1 (111) 111-11-11' placeholder={ExamplePhoneMsg} onChange={() => setSmsSendError(null)} style={{ ...INPUT_STYLE }} />
                 </Form.Item>
 
                 <Typography.Paragraph style={{ textAlign: 'left', fontSize: '12px', marginTop: '40px', lineHeight: '20px' }}>
@@ -173,6 +186,7 @@ const InputPhoneForm = ({ onFinish }): React.ReactElement<IInputPhoneFormProps> 
                         key='submit'
                         type='sberPrimary'
                         htmlType='submit'
+                        loading={isloading}
                         style={{ marginTop: '40px' }}
                     >
                         {RegisterMsg}
