@@ -79,7 +79,7 @@ const ConfirmPhoneAction = new GQLListSchema('ConfirmPhoneAction', {
         },
         retries: {
             schemaDoc: 'Number of times sms code input from user failed',
-            type: Number,
+            type: Integer,
             defaultValue: 0,
         },                
         isPhoneVerified: {
@@ -121,7 +121,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
     mutations: [
         {
             access: true,
-            schema: 'startConfirmPhoneAction(phone: String!, sender: JSON!, captcha: String): { token: String! }',
+            schema: 'startConfirmPhoneAction(phone: String!, sender: JSON!, captcha: String): String',
             resolver: async (parent, args, context, info, extra = {}) => {
                 const { phone: inputPhone, captcha, sender } = args
                 if (!isEmpty(captcha)) {
@@ -148,7 +148,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                     context: context.createContext({ skipAccessControl: true }),
                     query: `
                         mutation createRegisterWithPhoneConfirmationAction(
-                          $dv: Number!,
+                          $dv: Integer!,
                           $sender: JSON!,
                           $phone: String!,
                           $smsCode: Integer!,
@@ -201,7 +201,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                     },
                     sender: sender,
                 })
-                return { token }
+                return token
             },
         },
         {
@@ -245,7 +245,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                 const { errors: resendSmsError } = await context.executeGraphQL({
                     context: context.createContext({ skipAccessControl: true }),
                     query: `
-                        mutation resendSmsCode($smsCode: Number!, $smsCodeRequestedAt: String!, $smsCodeExpiresAt: String!, $retries: Number! ) {
+                        mutation resendSmsCode($smsCode: Integer!, $smsCodeRequestedAt: String!, $smsCodeExpiresAt: String!, $retries: Integer! ) {
                           updateConfirmPhoneAction(id: $id, data: {
                                 smsCode: $smsCode,
                                 smsCodeExpiresAt: $smsCodeExpiresAt,
@@ -283,7 +283,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
         },
         {
             access: true,
-            schema: 'confirmPhoneComplete(token: String!, smsCode: String!, captcha: String): { token: String }',
+            schema: 'confirmPhoneComplete(token: String!, smsCode: String!, captcha: String): String',
             resolver: async (parent, args, context, info, extra) => {
                 const { token, smsCode, captcha } = args
                 if (!isEmpty(captcha)) {
@@ -317,7 +317,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                     const { errors: incrementRetriesError } = await context.executeGraphQL({
                         context: context.createContext({ skipAccessControl: true }),
                         query: `
-                            mutation confirmPhoneIncrementRetries($id: ID!, $retries: Number!) {
+                            mutation confirmPhoneIncrementRetries($id: ID!, $retries: Integer!) {
                               updateConfirmPhoneAction(id: $id, data: {retries: $retries}) {
                                 id
                               }
@@ -369,7 +369,7 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                     console.error(confirmPhoneCompleteErrors)
                     throw new Error('[error]: Unable to set phone is confirmed')   
                 }
-                return { token }
+                return token
             },
         },
     ],
