@@ -24,15 +24,15 @@ const AuthenticateUserWithPhoneAndPasswordService = new GQLCustomSchema('Authent
             resolver: async (parent, args, context, info, extra = {}) => {
                 const { phone: inputPhone, password, captcha } = info.variableValues
                 if (!isEmpty(captcha)) {
-                    const { success, score } = await captchaCheck(captcha)
-                    if (!success) {
+                    const { isScorePassed, score } = await captchaCheck(captcha)
+                    if (!isScorePassed) {
                         throw new Error(`${CAPTCHA_CHECK_FAILED}] bot activity detected ${score} / 1.0`)
                     } 
                 }
                 const phone = normalizePhone(inputPhone)
-                const isLocked = await SecurityLock.isLocked(phone)
+                const isLocked = await SecurityLock.isLocked(phone, 'auth')
                 if (isLocked) {
-                    const lockTimeRemain = await SecurityLock.lockExpiredTime(phone)
+                    const lockTimeRemain = await SecurityLock.lockExpiredTime(phone, 'auth')
                     throw new Error(`${TOO_MANY_REQUESTS}] retry in ${lockTimeRemain} seconds `)
                 }                
                 const users = await User.getAll(context, { phone })
@@ -48,7 +48,7 @@ const AuthenticateUserWithPhoneAndPasswordService = new GQLCustomSchema('Authent
                 PasswordStrategy.config.identityField = 'phone'
                 const { success, message } = await PasswordStrategy.validate({ phone, password })
                 if (!success) {
-                    await SecurityLock.lock(phone)
+                    await SecurityLock.lock(phone, 'auth')
                     throw new Error(`${WRONG_PASSWORD_ERROR}] ${message}`)
                 }
                 const authToken = await context.startAuthedSession({ item: users[0], list: keystone.lists['User'] })

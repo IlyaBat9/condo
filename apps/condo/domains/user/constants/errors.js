@@ -11,10 +11,9 @@ const ALREADY_REGISTERED = '[unique:phone:multipleFound'
 const RESET_TOKEN_NOT_FOUND = '[resetPassword:token:notFound'
 const PASSWORD_TOO_SHORT = '[password:min:length'
 
-const SIGNIN_EXPIRED = '[signin:experied'
-const SIGNIN_SMS_CODE_EXPIRED = '[signin:smscode:experied'
-const SIGNIN_SMS_CODE_VERIFICATION_FAILED = '[signin:smscode:verify:failed'
-const SIGNIN_SMS_CODE_MAX_VERIFICATION_NUMBER_REACHED = '[signin:smscode:verify:tooManyRequests'
+const CONFIRM_PHONE_EXPIRED = '[confirm:phone:experied' 
+const CONFIRM_PHONE_SMS_CODE_VERIFICATION_FAILED = '[confirm:phone:smscode:verify:failed'
+const CONFIRM_PHONE_SMS_CODE_MAX_RETRIES_REACHED = '[confirm:phone:smscode:tooManyRequests'
 const TOO_MANY_REQUESTS = '[security:tooManyRequests'
 const CAPTCHA_CHECK_FAILED = '[security:captcha:failed'
 
@@ -32,8 +31,7 @@ module.exports = {
     EMAIL_ALREADY_REGISTERED_ERROR,
     RESET_TOKEN_NOT_FOUND,
     MIN_PASSWORD_LENGTH_ERROR,
-    SIGNIN_EXPIRED,
-    SIGNIN_SMS_CODE_EXPIRED,
-    SIGNIN_SMS_CODE_VERIFICATION_FAILED,
-    SIGNIN_SMS_CODE_MAX_VERIFICATION_NUMBER_REACHED,
+    CONFIRM_PHONE_EXPIRED,
+    CONFIRM_PHONE_SMS_CODE_VERIFICATION_FAILED,
+    CONFIRM_PHONE_SMS_CODE_MAX_RETRIES_REACHED,
 }

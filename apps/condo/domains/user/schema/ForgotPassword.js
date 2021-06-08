@@ -11,9 +11,9 @@ const { MIN_PASSWORD_LENGTH } = require('@condo/domains/user/constants/common')
 const { COUNTRIES, RUSSIA_COUNTRY } = require('@condo/domains/common/constants/countries')
 const { WRONG_EMAIL_ERROR, MULTIPLE_ACCOUNTS_MATCHES, RESET_TOKEN_NOT_FOUND, PASSWORD_TOO_SHORT, TOO_MANY_REQUESTS, CAPTCHA_CHECK_FAILED } = require('@condo/domains/user/constants/errors')
 const isEmpty = require('lodash/isEmpty')
-// const { SENDER_FIELD, DV_FIELD } = require('@condo/domains/common/schema/fields')
-// dv: DV_FIELD,
-// sender: SENDER_FIELD,
+const { SENDER_FIELD, DV_FIELD } = require('@condo/domains/common/schema/fields')
+// 
+
 const { captchaCheck, SecurityLock } = require('@condo/domains/common/utils/googleRecaptcha3')
 
 const USER_OWNED_FIELD = {
@@ -33,6 +33,8 @@ const USER_OWNED_FIELD = {
 
 const ForgotPasswordAction = new GQLListSchema('ForgotPasswordAction', {
     fields: {
+        dv: DV_FIELD,
+        sender: SENDER_FIELD,
         user: USER_OWNED_FIELD,
         token: {
             type: Text,
@@ -76,14 +78,14 @@ const ForgotPasswordService = new GQLCustomSchema('ForgotPasswordService', {
             resolver: async (parent, args, context, info, extra = {}) => {
                 const { email, captcha, sender } = args
                 if (!isEmpty(captcha)) {
-                    const { success, score } = await captchaCheck(captcha)
-                    if (!success) {
+                    const { isScorePassed, score } = await captchaCheck(captcha)
+                    if (!isScorePassed) {
                         throw new Error(`${CAPTCHA_CHECK_FAILED}] bot activity detected ${score} / 1.0`)
                     }
                 }
-                const isLocked = await SecurityLock.isLocked(email)
+                const isLocked = await SecurityLock.isLocked(email, 'forgot')
                 if (isLocked) {
-                    const lockTimeRemain = await SecurityLock.lockExpiredTime(email)
+                    const lockTimeRemain = await SecurityLock.lockExpiredTime(email, 'forgot')
                     throw new Error(`${TOO_MANY_REQUESTS}] retry in ${lockTimeRemain} seconds `)
                 }                
 
@@ -106,10 +108,12 @@ const ForgotPasswordService = new GQLCustomSchema('ForgotPasswordService', {
                     variables: { email },
                 })
                 if (userErrors || !userData.allUsers || !userData.allUsers.length) {
-                    throw new Error(`${WRONG_EMAIL_ERROR}] Unable to find user when trying to start password recovery`)
+                    await SecurityLock.lock(email, 'forgot')
+                    throw new Error(`${WRONG_EMAIL_ERROR}] Unable to find user when trying to start password recovery`)                    
                 }
 
                 if (userData.allUsers.length !== 1) {
+                    await SecurityLock.lock(email, 'forgot')
                     throw new Error(`${MULTIPLE_ACCOUNTS_MATCHES}] Unable to find exact one user to start password recovery`)
                 }
 
@@ -175,7 +179,7 @@ const ForgotPasswordService = new GQLCustomSchema('ForgotPasswordService', {
                 })
 
                 if (userAndTokenErrors) {
-                    throw new Error('[error]: Unable to construct forgot password context')
+                    throw new Error('[error]: Unable to construct forgot password')
                 }
                 const { token } = data.allForgotPasswordActions[0]
                 const user = data.User

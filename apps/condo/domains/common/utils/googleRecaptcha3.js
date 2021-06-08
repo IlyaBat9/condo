@@ -17,20 +17,20 @@ class RedisLock {
         this.redisConnection = new Redis(WORKER_REDIS_URL)
     }
 
-    async lockExpiredTime (phoneNumber) {
-        const time = await this.redisConnection.ttl(`${this.prefix}${phoneNumber}`)
+    async lockExpiredTime (phoneNumber, action = '') {
+        const time = await this.redisConnection.ttl(`${this.prefix}${action}${phoneNumber}`)
         // -1: no ttl on variable, -2: key not exists
         return Math.max(time, 0)
     }
 
-    async isLocked (phoneNumber) {
-        const value = await this.redisConnection.exists(`${this.prefix}${phoneNumber}`)
+    async isLocked (phoneNumber, action = '') {
+        const value = await this.redisConnection.exists(`${this.prefix}${action}${phoneNumber}`)
         return !!value
     }
 
-    async lock (phoneNumber, ttl = LOCK_TIMEOUT) {
-        await this.redisConnection.set(`${this.prefix}${phoneNumber}`, '1')
-        await this.redisConnection.expire(`${this.prefix}${phoneNumber}`, ttl)
+    async lock (phoneNumber, action = '', ttl = LOCK_TIMEOUT) {
+        await this.redisConnection.set(`${this.prefix}${action}${phoneNumber}`, '1')
+        await this.redisConnection.expire(`${this.prefix}${action}${phoneNumber}`, ttl)
     }
 
 }
@@ -78,9 +78,10 @@ const captchaCheck = async (response) => {
     if (serverAnswer.ok) {
         const result = await serverAnswer.json()
         onCaptchaCheck(result)
-        return result
+        return { ...result, isScorePassed: result.score > SAFE_CAPTCHA_SCORE }
     } else {
-        console.log('BAD Server response: ', serverAnswer)
+        console.error('BAD Server response: ', serverAnswer)
+        return {  score: 0, isScorePassed: false }
     }
 }
 
