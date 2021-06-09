@@ -140,6 +140,7 @@
   "pages.auth.register.info.SmsCodeSent": "We sent SMS on your phone number {phone}. Type it here.",
   "pages.auth.register.info.UserAgreement": "By pressing the button - you will agree with our policy {link}",
   "pages.auth.register.info.UserAgreementFileName": "policy",
+  "pages.auth.register.ResendSmsLabel": "Resend SMS",
   "pages.auth.Registered": "Registered",
   "pages.auth.RegistrationTitle": "Registration",
   "pages.auth.reset.AndSignInMsg": "and login to CRM",

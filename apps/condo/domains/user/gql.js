@@ -59,6 +59,17 @@ const START_CONFIRM_PHONE_MUTATION = gql`
         token: startConfirmPhoneAction(phone: $phone, dv: $dv, sender: $sender, captcha: $captcha)
     }
 `
+const RESEND_CONFIRM_PHONE_SMS_MUTATION = gql`
+    mutation confirmPhoneActionResendSms($token: String!, $captcha: String) {
+        result: confirmPhoneResendSms(token: $token, captcha: $captcha)
+    }
+`
+const COMPLETE_CONFIRM_PHONE_MUTATION = gql`
+    mutation confirmPhoneComplete($token: String!, $smsCode: Int!, $captcha: String) {
+        result: confirmPhoneComplete(token: $token, smsCode: $smsCode, captcha: $captcha)
+    }
+`
+
 /* AUTOGENERATE MARKER <CONST> */
 
 module.exports = {
@@ -66,10 +77,12 @@ module.exports = {
     UserAdmin,
     REGISTER_NEW_USER_MUTATION,
     START_CONFIRM_PHONE_MUTATION,
+    RESEND_CONFIRM_PHONE_SMS_MUTATION,
+    COMPLETE_CONFIRM_PHONE_MUTATION,
     GET_MY_USERINFO,
     SIGNIN_MUTATION,
     CHANGE_PASSWORD_WITH_TOKEN_MUTATION,
     SIGNIN_BY_PHONE_AND_PASSWORD_MUTATION,
-    START_PASSWORD_RECOVERY_MUTATION,    
+    START_PASSWORD_RECOVERY_MUTATION,
 /* AUTOGENERATE MARKER <EXPORTS> */
 }
