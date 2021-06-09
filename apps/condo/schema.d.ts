@@ -7321,6 +7321,7 @@ export type MutationChangePasswordWithTokenArgs = {
 
 export type MutationStartConfirmPhoneActionArgs = {
   phone: Scalars['String'];
+  dv: Scalars['Int'];
   sender: Scalars['JSON'];
   captcha?: Maybe<Scalars['String']>;
 };
@@ -7334,7 +7335,7 @@ export type MutationConfirmPhoneResendSmsArgs = {
 
 export type MutationConfirmPhoneCompleteArgs = {
   token: Scalars['String'];
-  smsCode: Scalars['String'];
+  smsCode: Scalars['Int'];
   captcha?: Maybe<Scalars['String']>;
 };
 
@@ -10810,6 +10811,8 @@ export type RegisterNewUserInput = {
   password: Scalars['String'];
   phone?: Maybe<Scalars['String']>;
   meta?: Maybe<Scalars['JSON']>;
+  captcha?: Maybe<Scalars['String']>;
+  confirmPhoneToken?: Maybe<Scalars['String']>;
 };
 
 export type ResendMessageInput = {

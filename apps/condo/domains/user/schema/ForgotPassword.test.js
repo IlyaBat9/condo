@@ -25,7 +25,7 @@ describe('FORGOT_RECOVERY_CHANGE_PASSWORD', () => {
 
     const CHANGE_PASSWORD_WITH_TOKEN_MUTATION = gql`
         mutation changePasswordWithToken($token: String!, $password: String!) {
-            status: changePasswordWithToken(token: $token, password: $password)
+            email: changePasswordWithToken(token: $token, password: $password)
         }
     `
 
@@ -83,7 +83,7 @@ describe('FORGOT_RECOVERY_CHANGE_PASSWORD', () => {
         const password = `${user.password}:${user.password}:new`
         const res2 = await client.mutate(CHANGE_PASSWORD_WITH_TOKEN_MUTATION, { token, password })
         expect(res2.errors).toEqual(undefined)
-        expect(res2.data).toEqual({ status: 'ok' })
+        expect(res2.data).toEqual({ email: userAttrs.email })
         // check logging by new password
         const newClient = await makeLoggedInClient({ email: userAttrs.email, password })
         expect(newClient.user.id).toEqual(user.id)

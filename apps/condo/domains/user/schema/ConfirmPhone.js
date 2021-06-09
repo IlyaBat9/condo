@@ -32,7 +32,7 @@ const {
 const whiteList = conf.SMS_WHITE_LIST ? JSON.parse(conf.SMS_WHITE_LIST) : {}
 
 const generateSmsCode = (phone) => {
-    if (has(whiteList, phone)) { // Emulate firebase white list for development - don't send sms
+    if (has(whiteList, phone)) { // Emulate firebase white list for development - no real send sms
         return Number(whiteList[phone])
     }
     return faker.datatype.number({ 
@@ -267,16 +267,6 @@ const ConfirmPhoneService = new GQLCustomSchema('ConfirmPhoneService', {
                     throw new Error('[error]: Unable to resend SMS')   
                 }   
                 const lang = COUNTRIES[RUSSIA_COUNTRY].locale        
-                console.log({
-                    lang,
-                    to: { phone },
-                    type: SMS_VERIFY_CODE_MESSAGE_TYPE,
-                    meta: {
-                        dv: 1,
-                        smsCode: newSmsCode,                        
-                    },
-                    sender: sender,
-                })        
                 await sendMessage(context, {
                     lang,
                     to: { phone },

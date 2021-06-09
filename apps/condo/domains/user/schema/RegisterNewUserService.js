@@ -3,8 +3,10 @@ const { REGISTER_NEW_USER_MESSAGE_TYPE } = require('@condo/domains/notification/
 const { RUSSIA_COUNTRY } = require('@condo/domains/common/constants/countries')
 const { COUNTRIES } = require('@condo/domains/common/constants/countries')
 const { sendMessage } = require('@condo/domains/notification/utils/serverSchema')
-const { MIN_PASSWORD_LENGTH_ERROR, EMAIL_ALREADY_REGISTERED_ERROR } = require('@condo/domains/user/constants/errors')
+const { captchaCheck } = require('@condo/domains/common/utils/googleRecaptcha3')
+const { MIN_PASSWORD_LENGTH_ERROR, CAPTCHA_CHECK_FAILED } = require('@condo/domains/user/constants/errors')
 const { MIN_PASSWORD_LENGTH } = require('@condo/domains/user/constants/common')
+const isEmpty = require('lodash/isEmpty')
 
 async function ensureNotExists (context, model, models, field, value) {
     const { errors, data } = await context.executeGraphQL({
@@ -20,10 +22,8 @@ async function ensureNotExists (context, model, models, field, value) {
     })
 
     if (errors) {
-        const msg = `[error] Unable to check field ${field} uniques`
-        throw new Error(msg)
+        throw new Error(`[error] Unable to check field ${field} uniques`)
     }
-
     if (data.objs.length !== 0) {
         throw new Error(`[unique:${field}:multipleFound] ${models} with this ${field} is already exists`)
     }
@@ -33,7 +33,7 @@ const RegisterNewUserService = new GQLCustomSchema('RegisterNewUserService', {
     types: [
         {
             access: true,
-            type: 'input RegisterNewUserInput { dv: Int!, sender: JSON!, name: String!, email: String!, password: String!, phone: String, meta: JSON }',
+            type: 'input RegisterNewUserInput { dv: Int!, sender: JSON!, name: String!, email: String!, password: String!, phone: String, meta: JSON, captcha: String, confirmPhoneToken: String }',
         },
     ],
     mutations: [
@@ -41,41 +41,45 @@ const RegisterNewUserService = new GQLCustomSchema('RegisterNewUserService', {
             access: true,
             schema: 'registerNewUser(data: RegisterNewUserInput!): User',
             resolver: async (parent, args, context) => {
-                const { data } = args
-
+                const data = args.data
+                const { captcha, confirmPhoneToken, ...restUserData } = data
                 const userData = {
-                    ...data,
+                    ...restUserData,
                     isPhoneVerified: false,
                 }
-
-                // TODO(Dimitreee): use ensureNotExists
-                const { errors: findErrors, data: findData } = await context.executeGraphQL({
-                    context: context.createContext({ skipAccessControl: true }),
-                    query: `
-                            query findUserByEmail($email: String!) {
-                              users: allUsers(where: { email: $email }) {
-                                id
-                              }
-                            }
-                        `,
-                    variables: { email: userData.email },
-                })
-
-                // TODO(Dimitreee): add usage of guards
-
-                if (findErrors) {
-                    const msg = '[error] Unable to call find service'
-                    throw new Error(msg)
+                if (!isEmpty(captcha)) {
+                    const { isScorePassed, score } = await captchaCheck(captcha)
+                    if (!isScorePassed) {
+                        throw new Error(`${CAPTCHA_CHECK_FAILED}] bot activity detected ${score} / 1.0`)
+                    } 
                 }
 
-                if (findData.users.length !== 0) {
-                    throw new Error(`${EMAIL_ALREADY_REGISTERED_ERROR}] User with this email is already registered`)
+                if (confirmPhoneToken) {
+                    const { errors: findConfirmPhoneActionErrors, data: confirmActions } = await context.executeGraphQL({
+                        context: context.createContext({ skipAccessControl: true }),
+                        query: `
+                                query findConfirmPhoneActionsByToken($token: String!) {
+                                  actions: allConfirmPhoneActions(where: { token: $token }) {
+                                    phone
+                                    isPhoneVerified
+                                  }
+                                }
+                            `,
+                        variables: { token: confirmPhoneToken },
+                    })
+                    if (findConfirmPhoneActionErrors || !confirmActions || isEmpty(confirmActions.actions)) {
+                        const msg = '[error] Unable to find confirm phone action'
+                        throw new Error(msg)    
+                    }
+                    const { phone, isPhoneVerified } = confirmActions.actions[0]
+                    userData.phone = phone
+                    userData.isPhoneVerified = isPhoneVerified
                 }
-
+                await ensureNotExists(context, 'User', 'Users', 'phone', userData.phone)
+                await ensureNotExists(context, 'User', 'Users', 'email', userData.email)
                 if (userData.password.length < MIN_PASSWORD_LENGTH) {
                     throw new Error(`${MIN_PASSWORD_LENGTH_ERROR}] Password length less then ${MIN_PASSWORD_LENGTH} character`)
                 }
-
                 const { data: createData, errors: createErrors } = await context.executeGraphQL({
                     context: context.createContext({ skipAccessControl: true }),
                     query: `

@@ -242,6 +242,7 @@ const ForgotPasswordService = new GQLCustomSchema('ForgotPasswordService', {
 
                 const user = data.passwordTokens[0].user.id
                 const tokenId = data.passwordTokens[0].id
+                const email = data.passwordTokens[0].user.email
 
                 // mark token as used
                 const { errors: markAsUsedError } = await context.executeGraphQL({
@@ -277,7 +278,7 @@ const ForgotPasswordService = new GQLCustomSchema('ForgotPasswordService', {
                     throw new Error('[error] Unable to change password')
                 }
 
-                return 'ok'
+                return email
             },
         },
     ],

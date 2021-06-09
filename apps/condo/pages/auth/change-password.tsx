@@ -11,7 +11,6 @@ import { getQueryParams } from '@condo/domains/common/utils/url.utils'
 import { runMutation } from '@condo/domains/common/utils/mutations.utils'
 import { useMutation } from '@core/next/apollo'
 import { CHANGE_PASSWORD_WITH_TOKEN_MUTATION } from '@condo/domains/user/gql'
-import { useAuth } from '@core/next/auth'
 
 const INPUT_STYLE = { width: '20em' }
 
@@ -21,8 +20,6 @@ const ChangePasswordPage: AuthPage = () => {
     const initialValues = { token, password: '', confirm: '' }
     const [isLoading, setIsLoading] = useState(false)
     const [changePassword] = useMutation(CHANGE_PASSWORD_WITH_TOKEN_MUTATION)
-    const auth = useAuth()
-
     const intl = useIntl()
     const SaveMsg = intl.formatMessage({ id: 'Save' })
     const PasswordMsg = intl.formatMessage({ id: 'pages.auth.signin.field.Password' })
@@ -36,20 +33,16 @@ const ChangePasswordPage: AuthPage = () => {
     const TwoPasswordDontMatchMsg = intl.formatMessage({ id: 'pages.auth.TwoPasswordDontMatch' })
     const ErrorToFormFieldMsgMapping = {}
 
-    const userId = get(auth, ['user', 'id'])
+    const { signInByEmail } = useContext(AuthLayoutContext)
 
     const onFinish = values => {
         setIsLoading(true)
         return runMutation({
             mutation: changePassword,
             variables: values,
-            onFinally: () => {
+            onFinally: ({ email }) => {
                 setIsLoading(false)
-                if (userId) {
-                    Router.push('/organizations/')
-                } else {
-                    Router.push('/auth/signin/')
-                }
+                signInByEmail({ email, password: form.getFieldValue('password') }).then(() => Router.push('/organizations/'))
             },
             intl,
             form,
@@ -77,7 +70,7 @@ const ChangePasswordPage: AuthPage = () => {
                     <Input type="hidden" />
                 </Form.Item>
                 <Form.Item
-                    name="password"
+                    name='password'
                     label={PasswordMsg}
                     labelAlign='left'
                     labelCol={{ flex: 1 }}                            
@@ -95,7 +88,7 @@ const ChangePasswordPage: AuthPage = () => {
                     <Input.Password style={INPUT_STYLE}/>
                 </Form.Item>
                 <Form.Item
-                    name="confirm"
+                    name='confirm'
                     label={ConfirmPasswordMsg}
                     labelAlign='left'
                     labelCol={{ flex: 1 }}                            

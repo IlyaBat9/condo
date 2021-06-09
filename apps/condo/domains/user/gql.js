@@ -36,7 +36,7 @@ const SIGNIN_MUTATION = gql`
 
 const CHANGE_PASSWORD_WITH_TOKEN_MUTATION = gql`
     mutation changePasswordWithToken($token: String!, $password: String!) {
-        status: changePasswordWithToken(token: $token, password: $password)
+        email: changePasswordWithToken(token: $token, password: $password)
     }
 `
 
@@ -61,12 +61,12 @@ const START_CONFIRM_PHONE_MUTATION = gql`
 `
 const RESEND_CONFIRM_PHONE_SMS_MUTATION = gql`
     mutation confirmPhoneActionResendSms($token: String!, $captcha: String) {
-        result: confirmPhoneResendSms(token: $token, captcha: $captcha)
+        status: confirmPhoneResendSms(token: $token, captcha: $captcha)
     }
 `
 const COMPLETE_CONFIRM_PHONE_MUTATION = gql`
     mutation confirmPhoneComplete($token: String!, $smsCode: Int!, $captcha: String) {
-        result: confirmPhoneComplete(token: $token, smsCode: $smsCode, captcha: $captcha)
+        phone: confirmPhoneComplete(token: $token, smsCode: $smsCode, captcha: $captcha)
     }
 `
 
