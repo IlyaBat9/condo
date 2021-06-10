@@ -84,21 +84,23 @@ const AuthLayout: React.FC<IAuthLayoutProps> = ({ children, headerAction }) => {
     const colSize = useAntdMediaQuery()
     const isMobile = (colSize === 'xs')
 
-    const [signinByPhoneMutation] = useMutation(SIGNIN_MUTATION)
+    const [signinByPhoneMutation] = useMutation(SIGNIN_BY_PHONE_AND_PASSWORD_MUTATION)
     const signInByPhone = async ({ phone, password }) => {
         return runMutation({
             mutation: signinByPhoneMutation,
             variables: { phone, password },
+            intl,
         }).catch(error => {
             console.error(error)
         })
     }
     // TODO(zuch): remove after making email optional
-    const [signinByEmailMutation] = useMutation(SIGNIN_BY_PHONE_AND_PASSWORD_MUTATION)
+    const [signinByEmailMutation] = useMutation(SIGNIN_MUTATION)
     const signInByEmail = async ({ email, password }) => {
         return runMutation({
             mutation: signinByEmailMutation,
             variables: { email, password },
+            intl,
         }).catch(error => {
             console.error(error)
         })

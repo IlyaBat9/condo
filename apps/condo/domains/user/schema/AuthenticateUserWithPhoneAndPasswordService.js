@@ -2,7 +2,12 @@ const { getById, getSchemaCtx } = require('@core/keystone/schema')
 const { GQLCustomSchema } = require('@core/keystone/schema')
 const { normalizePhone } = require('@condo/domains/common/utils/phone')
 const { User } = require('@condo/domains/user/utils/serverSchema')
-const { WRONG_PASSWORD_ERROR, TOO_MANY_REQUESTS, CAPTCHA_CHECK_FAILED } = require('@condo/domains/user/constants/errors')
+const { 
+    WRONG_PASSWORD_ERROR,
+    WRONG_PHONE_ERROR,
+    TOO_MANY_REQUESTS,
+    CAPTCHA_CHECK_FAILED,
+} = require('@condo/domains/user/constants/errors')
 const isEmpty = require('lodash/isEmpty')
 const { captchaCheck, SecurityLock } = require('@condo/domains/common/utils/googleRecaptcha3')
 
@@ -37,7 +42,7 @@ const AuthenticateUserWithPhoneAndPasswordService = new GQLCustomSchema('Authent
                 }                
                 const users = await User.getAll(context, { phone })
                 if (users.length !== 1) {
-                    const msg = `${WRONG_PASSWORD_ERROR}] Unable to find user. Try to register`
+                    const msg = `${WRONG_PHONE_ERROR}] Unable to find user. Try to register`
                     throw new Error(msg)
                 }
                 const user = await getById('User', users[0].id)

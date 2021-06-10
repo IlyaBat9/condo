@@ -1,8 +1,8 @@
 
 const WRONG_PASSWORD_ERROR = '[passwordAuth:secret:mismatch'
 const EMPTY_PASSWORD_ERROR = '[passwordAuth:secret:notSet'
-const WRONG_EMAIL_ERROR = '[passwordAuth:identity:notFound'
 const MULTIPLE_ACCOUNTS_MATCHES = '[resetPassword:identity:multipleFound'
+const WRONG_EMAIL_ERROR = '[passwordAuth:identity:notFound'
 const WRONG_PHONE_ERROR = '[passwordAuth:identity:notFound'
 const AUTH_BY_PASSWORD_FAILED_ERROR = '[passwordAuth:failure'
 const MIN_PASSWORD_LENGTH_ERROR = '[register:password:minLength'

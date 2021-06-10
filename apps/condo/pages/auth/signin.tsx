@@ -108,14 +108,15 @@ const SignInForm = (): React.ReactElement => {
     return (
         <Form
             form={form}
-            name={'signin'}
+            name='signin'
             initialValues={initialValues}
             colon={false}
             style={{ marginTop: '36px' }}
             requiredMark={false}
+            validateTrigger={['onBlur', 'onSubmit']}            
         >
             <Form.Item
-                name={'phone'}
+                name='phone'
                 label={PhoneMsg}
                 labelAlign='left'
                 labelCol={{ flex: 1 }}
@@ -125,7 +126,7 @@ const SignInForm = (): React.ReactElement => {
             </Form.Item>
 
             <Form.Item
-                name={'password'}
+                name='password'
                 label={PasswordMsg}
                 labelAlign='left'
                 labelCol={{ flex: 1 }} 

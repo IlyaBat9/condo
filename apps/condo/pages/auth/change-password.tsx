@@ -1,6 +1,4 @@
 import Router from 'next/router'
-import get from 'lodash/get'
-
 import { useIntl } from '@core/next/intl'
 import { Form, Input, Typography } from 'antd'
 import { Button } from '@condo/domains/common/components/Button'
@@ -19,7 +17,7 @@ const ChangePasswordPage: AuthPage = () => {
     const { token } = getQueryParams()
     const initialValues = { token, password: '', confirm: '' }
     const [isLoading, setIsLoading] = useState(false)
-    const [changePassword] = useMutation(CHANGE_PASSWORD_WITH_TOKEN_MUTATION)
+    const [changePasswordMutation] = useMutation(CHANGE_PASSWORD_WITH_TOKEN_MUTATION)
     const intl = useIntl()
     const SaveMsg = intl.formatMessage({ id: 'Save' })
     const PasswordMsg = intl.formatMessage({ id: 'pages.auth.signin.field.Password' })
@@ -35,15 +33,18 @@ const ChangePasswordPage: AuthPage = () => {
 
     const { signInByEmail } = useContext(AuthLayoutContext)
 
-    const onFinish = values => {
+    const changePassword = values => {
         setIsLoading(true)
         return runMutation({
-            mutation: changePassword,
+            mutation: changePasswordMutation,
             variables: values,
-            onFinally: ({ email }) => {
-                setIsLoading(false)
+            onCompleted: (data) => {
+                const { data: { email } } = data
                 signInByEmail({ email, password: form.getFieldValue('password') }).then(() => Router.push('/organizations/'))
             },
+            onFinally: () => {
+                setIsLoading(false)
+            },            
             intl,
             form,
             ErrorToFormFieldMsgMapping,
@@ -59,15 +60,16 @@ const ChangePasswordPage: AuthPage = () => {
                 
             <Form
                 form={form}
-                name="change-password"
-                onFinish={onFinish}
+                name='change-password'
+                onFinish={changePassword}
                 initialValues={initialValues}
                 colon={false}
                 style={{ marginTop: '40px' }}
-                requiredMark={false}                
+                requiredMark={false}           
+                validateTrigger={['onBlur', 'onSubmit']}                     
             >
-                <Form.Item name="token" style={{ display: 'none' }}>
-                    <Input type="hidden" />
+                <Form.Item name='token' style={{ display: 'none' }}>
+                    <Input type='hidden' />
                 </Form.Item>
                 <Form.Item
                     name='password'
@@ -117,7 +119,7 @@ const ChangePasswordPage: AuthPage = () => {
                             key='submit'
                             type='sberPrimary'
                             loading={isLoading}
-                            htmlType="submit" 
+                            htmlType='submit' 
                         >
                             {SaveMsg}
                         </Button>
